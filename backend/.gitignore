@@ -1,0 +1,5 @@
+# Abaikan file credentials
+credentials.json
+
+# File konfigurasi lokal
+.env
