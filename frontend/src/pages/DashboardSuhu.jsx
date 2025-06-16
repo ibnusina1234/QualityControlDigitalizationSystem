@@ -102,7 +102,7 @@ const Dashboard = () => {
 
       const sendAlertToBackend = async ({ room, temperature, time }) => {
             try {
-                  await fetch("http://localhost:8081/users/alert", {
+                  await fetch("http://10.126.15.141:8081/users/alert", {
                         method: "POST",
                         headers: { "Content-Type": "application/json" },
                         body: JSON.stringify({ room, temperature, time }),

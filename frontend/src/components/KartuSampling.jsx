@@ -13,7 +13,7 @@ const SamplingCard = () => {
 
       useEffect(() => {
             axios
-                  .get(`http://localhost:8081/cards/sampling-cards-detail/${id}`)
+                  .get(`http://10.126.15.141:8081/cards/sampling-cards-detail/${id}`)
                   .then((res) => {
                         console.log("Respons diterima di frontend:", res.data);
 
@@ -479,7 +479,7 @@ const SamplingCard = () => {
                                                                   <div key={index} className="flex flex-col items-center">
                                                                         <div className="w-64 h-64 bg-gray-800 overflow-hidden flex items-center justify-center">
                                                                               <img
-                                                                                    src={`http://localhost:8081/cards/get-images/${photo.src}`}
+                                                                                    src={`http://10.126.15.141:8081/cards/get-images/${photo.src}`}
                                                                                     alt={photo.caption}
                                                                                     className="w-full h-full object-contain"
                                                                               />

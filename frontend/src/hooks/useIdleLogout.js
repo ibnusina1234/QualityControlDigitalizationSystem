@@ -13,7 +13,11 @@ const useIdleLogout = (logoutCallback, timeout = 3600000) => {
 
       try {
         // Perbarui token saat ada aktivitas
-        await axios.post("http://localhost:8081/users/updateToken", {}, { withCredentials: true });
+        await axios.post(
+          "http://10.126.15.141:8081/users/updateToken",
+          {},
+          { withCredentials: true }
+        );
       } catch (err) {
         console.error("❌ Gagal memperbarui token:", err);
       }
@@ -31,7 +35,9 @@ const useIdleLogout = (logoutCallback, timeout = 3600000) => {
 
     return () => {
       clearTimeout(timer);
-      events.forEach((event) => window.removeEventListener(event, handleActivity));
+      events.forEach((event) =>
+        window.removeEventListener(event, handleActivity)
+      );
     };
   }, [logoutCallback, timeout, navigate]);
 };

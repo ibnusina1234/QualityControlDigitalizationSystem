@@ -107,7 +107,7 @@ export default function SamplingCardForm() {
             setIsLoading(true);
             try {
                   const response = await fetch(
-                        `http://localhost:8081/cards/getMaterialDetailByCardNumber/${form.ref_card_number}`
+                        `http://10.126.15.141:8081/cards/getMaterialDetailByCardNumber/${form.ref_card_number}`
                   );
 
                   if (!response.ok) throw new Error("Failed to fetch card data");
@@ -383,7 +383,7 @@ export default function SamplingCardForm() {
                   const formData = new FormData();
                   formData.append("data", JSON.stringify(sanitizedForm));
 
-                  const response = await fetch("http://localhost:8081/cards/sampling-cards", {
+                  const response = await fetch("http://10.126.15.141:8081/cards/sampling-cards", {
                         method: "POST",
                         headers: {
                               "Content-Type": "application/json",

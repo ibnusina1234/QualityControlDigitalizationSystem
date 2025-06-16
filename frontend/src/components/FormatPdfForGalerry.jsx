@@ -21,7 +21,7 @@ export default function GalleryPDFFormat() {
   const docNumber = "SOP-QC-G016.01L2";
 
   // Base URL untuk API
-  const API_BASE_URL = "http://localhost:8081";
+  const API_BASE_URL = "http://10.126.15.141:8081";
 
   useEffect(() => {
     setLoading(true);

@@ -80,7 +80,7 @@ export default function ApprovalsSamplingCard() {
                   const controller = new AbortController();
                   const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
 
-                  const res = await fetch('http://localhost:8081/cards/pending-approval-sampling-cards', {
+                  const res = await fetch('http://10.126.15.141:8081/cards/pending-approval-sampling-cards', {
                         signal: controller.signal
                   });
 
@@ -136,7 +136,7 @@ export default function ApprovalsSamplingCard() {
                   const controller = new AbortController();
                   const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
 
-                  const res = await fetch(`http://localhost:8081/cards/get-approval-sampling-cards`, {
+                  const res = await fetch(`http://10.126.15.141:8081/cards/get-approval-sampling-cards`, {
                         signal: controller.signal
                   });
 
@@ -227,7 +227,7 @@ export default function ApprovalsSamplingCard() {
                   const controller = new AbortController();
                   const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
 
-                  const res = await fetch('http://localhost:8081/cards/approval-sampling-cards', {
+                  const res = await fetch('http://10.126.15.141:8081/cards/approval-sampling-cards', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
@@ -293,7 +293,7 @@ export default function ApprovalsSamplingCard() {
                   const controller = new AbortController();
                   const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
 
-                  const res = await fetch('http://localhost:8081/cards/approval-sampling-cards', {
+                  const res = await fetch('http://10.126.15.141:8081/cards/approval-sampling-cards', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
@@ -496,7 +496,7 @@ export default function ApprovalsSamplingCard() {
                                                             <label className={`block text-sm font-medium mb-1 ${textHeader}`}>Approval Role</label>
                                                             <input
                                                                   type="text"
-                                                                   className={`w-full p-2 border rounded-md ${borderSection} focus:ring-blue-500 focus:border-blue-500 bg-transparent ${textHeader}`}
+                                                                  className={`w-full p-2 border rounded-md ${borderSection} focus:ring-blue-500 focus:border-blue-500 bg-transparent ${textHeader}`}
                                                                   value={approveRole}
                                                                   readOnly
                                                             />
@@ -506,7 +506,7 @@ export default function ApprovalsSamplingCard() {
                                                             <input
                                                                   type="text"
                                                                   placeholder="Enter your name"
-                                                                   className={`w-full p-2 border rounded-md ${borderSection} focus:ring-blue-500 focus:border-blue-500 bg-transparent ${textHeader}`}
+                                                                  className={`w-full p-2 border rounded-md ${borderSection} focus:ring-blue-500 focus:border-blue-500 bg-transparent ${textHeader}`}
                                                                   value={approveName}
                                                                   onChange={(e) => setName(e.target.value)}
                                                                   readOnly
@@ -680,7 +680,7 @@ export default function ApprovalsSamplingCard() {
                                                                                           <tr key={item.sampling_card_id} className={tableRowHover}>
                                                                                                 <td className={`px-3 py-4 whitespace-nowrap text-sm ${textHeader}`}>
                                                                                                       {
-                                                                                                           item.card_number|| "Card Not Found"
+                                                                                                            item.card_number || "Card Not Found"
                                                                                                       }
                                                                                                 </td>
                                                                                                 <td className="px-3 py-4 whitespace-nowrap text-sm">
@@ -688,37 +688,34 @@ export default function ApprovalsSamplingCard() {
                                                                                                 </td>
                                                                                                 <td className="px-3 py-4 whitespace-nowrap text-sm">
                                                                                                       <div className="flex items-center space-x-1">
-                                                                                                            <span className={`inline-flex items-center justify-center h-6 w-6 rounded-full text-xs font-medium ${
-                                                                                                                  item.qc_supervisor_approved === 1
+                                                                                                            <span className={`inline-flex items-center justify-center h-6 w-6 rounded-full text-xs font-medium ${item.qc_supervisor_approved === 1
                                                                                                                         ? badgeStepActive
                                                                                                                         : item.qc_supervisor_approved === 2
-                                                                                                                        ? badgeStepRejected
-                                                                                                                        : badgeStepInactive
-                                                                                                            }`}>
+                                                                                                                              ? badgeStepRejected
+                                                                                                                              : badgeStepInactive
+                                                                                                                  }`}>
                                                                                                                   QCS
                                                                                                             </span>
                                                                                                             <svg className="h-4 w-4 text-gray-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                                                                                                                   <path d="M5 12h14"></path>
                                                                                                             </svg>
-                                                                                                            <span className={`inline-flex items-center justify-center h-6 w-6 rounded-full text-xs font-medium ${
-                                                                                                                  item.qc_manager_approved === 1
+                                                                                                            <span className={`inline-flex items-center justify-center h-6 w-6 rounded-full text-xs font-medium ${item.qc_manager_approved === 1
                                                                                                                         ? badgeStepActive
                                                                                                                         : item.qc_manager_approved === 2
-                                                                                                                        ? badgeStepRejected
-                                                                                                                        : badgeStepInactive
-                                                                                                            }`}>
+                                                                                                                              ? badgeStepRejected
+                                                                                                                              : badgeStepInactive
+                                                                                                                  }`}>
                                                                                                                   QCM
                                                                                                             </span>
                                                                                                             <svg className="h-4 w-4 text-gray-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                                                                                                                   <path d="M5 12h14"></path>
                                                                                                             </svg>
-                                                                                                            <span className={`inline-flex items-center justify-center h-6 w-6 rounded-full text-xs font-medium ${
-                                                                                                                  item.qa_manager_approved === 1
+                                                                                                            <span className={`inline-flex items-center justify-center h-6 w-6 rounded-full text-xs font-medium ${item.qa_manager_approved === 1
                                                                                                                         ? badgeStepActive
                                                                                                                         : item.qa_manager_approved === 2
-                                                                                                                        ? badgeStepRejected
-                                                                                                                        : badgeStepInactive
-                                                                                                            }`}>
+                                                                                                                              ? badgeStepRejected
+                                                                                                                              : badgeStepInactive
+                                                                                                                  }`}>
                                                                                                                   QAM
                                                                                                             </span>
                                                                                                       </div>

@@ -34,8 +34,8 @@ export default function SamplingMasterlist() {
       useEffect(() => {
             const fetchData = async () => {
                   try {
-                        const listResponse = await fetch("http://localhost:8081/cards/list-sampling-cards");
-                        const partResponse = await fetch("http://localhost:8081/cards/part-sampling-cards");
+                        const listResponse = await fetch("http://10.126.15.141:8081/cards/list-sampling-cards");
+                        const partResponse = await fetch("http://10.126.15.141:8081/cards/part-sampling-cards");
 
                         const listData = await listResponse.json();
                         const partData = await partResponse.json();
@@ -85,7 +85,7 @@ export default function SamplingMasterlist() {
             if (!isConfirmed) return;
 
             try {
-                  const response = await fetch(`http://localhost:8081/cards/sampling-card-delete/${id}`, {
+                  const response = await fetch(`http://10.126.15.141:8081/cards/sampling-card-delete/${id}`, {
                         method: "DELETE",
                   });
 

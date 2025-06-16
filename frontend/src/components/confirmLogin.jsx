@@ -20,7 +20,7 @@ export default function ApprovalLoginPopup({ onSuccess, onClose }) {
     setIsLoading(true);
 
     try {
-      const res = await axios.post('http://localhost:8081/cards/verify-user', {
+      const res = await axios.post('http://10.126.15.141:8081/cards/verify-user', {
         email,
         password
       });
