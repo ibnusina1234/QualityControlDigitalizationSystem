@@ -139,7 +139,7 @@ const AdminApproval = () => {
 
       return (
             <>
-                  {isAdmin && isSuperAdmin ? (
+                {(isAdmin || isSuperAdmin) ? (
                         <Box p={8} mt={20}>
                               <FormControl mb={4}>
                                     <FormLabel>ID</FormLabel>
