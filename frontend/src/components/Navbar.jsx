@@ -179,14 +179,14 @@ function Navbar({ handleLogout }) {
                                           >
                                                 Dashboard Temperature dan RH
                                           </Button>
-                                          <Button
+                                          {/* <Button
                                                 leftIcon={<RiDashboardLine />}
                                                 justifyContent="flex-start"
                                                 variant="ghost"
                                                 onClick={() => handleNavigate("/DashboardInstrument")}
                                           >
                                                 Dashboard Instrument
-                                          </Button>
+                                          </Button> */}
                                           <Button
                                                 leftIcon={<RiDashboardLine />}
                                                 justifyContent="flex-start"
@@ -387,7 +387,7 @@ function Navbar({ handleLogout }) {
                                                       </Collapse>
                                                 </Box>
                                                 {/* Menu lainnya */}
-                                                <MenuItem
+                                                {/* <MenuItem
                                                       icon={<RiDashboardLine />}
                                                       as={Link}
                                                       to="/DashboardInstrument"
@@ -397,7 +397,7 @@ function Navbar({ handleLogout }) {
                                                       fontSize={{ base: "sm", md: "md" }}
                                                 >
                                                       Dashboard Instrument
-                                                </MenuItem>
+                                                </MenuItem> */}
                                                 <MenuItem
                                                       icon={<RiDashboardLine />}
                                                       as={Link}
@@ -411,11 +411,11 @@ function Navbar({ handleLogout }) {
                                                 </MenuItem>
                                           </MenuList>
                                     </Menu>
-                                    {isLoggedIn && (
+                                    {/* {isLoggedIn && ( */}
                                           <>
                                                 <Menu>
-                                                      <Tooltip label="Dashboard" placement="bottom">
-                                                            <MenuButton
+                                                      {/* <Tooltip label="Dashboard" placement="bottom"> */}
+                                                            {/* <MenuButton
                                                                   as={Button}
                                                                   variant="ghost"
                                                                   colorScheme="teal"
@@ -424,8 +424,8 @@ function Navbar({ handleLogout }) {
                                                                   px={{ base: 2, md: 3, lg: 4 }}
                                                             >
                                                                   Document
-                                                            </MenuButton>
-                                                      </Tooltip>
+                                                            </MenuButton> */}
+                                                      {/* </Tooltip> */}
                                                       <MenuList shadow="lg" p={1}>
                                                             {/* Submenu trigger with hover */}
                                                             <Box
@@ -544,8 +544,8 @@ function Navbar({ handleLogout }) {
                                                 </Menu>
 
                                           </>
-                                    )}
-                                    {isLoggedIn && (
+                                    {/* )} */}
+                                    {/* {isLoggedIn && ( */}
                                           <>
                                                 <Menu>
                                                       <Tooltip label="Dashboard" placement="bottom">
@@ -784,7 +784,7 @@ function Navbar({ handleLogout }) {
                                                 </Menu>
 
                                           </>
-                                    )}
+                                    {/* )} */}
                               </HStack>
 
                               {/* Right Side - User Menu, Notifications, Theme Toggle */}

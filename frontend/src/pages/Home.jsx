@@ -168,7 +168,7 @@ const headerBg = scrolled ? headerBgColor : "";
                                     />
                                     <span className="relative">About Us</span>
                               </button>
-                              <a
+                              {/* <a
                                     href="https://www.youtube.com/watch?v=Y7f98aduVJ8"
                                     target="_blank"
                                     rel="noopener noreferrer"
@@ -176,7 +176,7 @@ const headerBg = scrolled ? headerBgColor : "";
                               >
                                     <PlayCircle className="mr-2" size={20} />
                                     <span>Watch Video</span>
-                              </a>
+                              </a> */}
                         </div>
                   </div>
 

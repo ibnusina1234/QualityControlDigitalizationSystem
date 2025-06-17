@@ -5,7 +5,7 @@ import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer, BarChart, Ba
 import {
       AlertCircle, CheckCircle, XCircle, Clock, ChevronDown, ChevronUp, RefreshCcw,
       TrendingUp, TrendingDown, Activity, Zap, Target, Users, FileText,
-      Play, Pause, BarChart3, PieChart as PieChartIcon, Eye
+      Play, Pause, BarChart3, PieChart as PieChartIcon, Eye,Boxes
 } from "lucide-react";
 
 // Helper: convert string to number safely
@@ -349,20 +349,20 @@ export default function SampleMonitoringDashboard() {
                               </div>
                               <div className="text-center">
                                     <div className="flex items-center justify-center mb-2">
-                                          <Users className="text-blue-500 mr-2" size={24} />
-                                          <span className="text-sm font-medium text-blue-600">Active Samples</span>
+                                          <Boxes className="text-blue-500 mr-2" size={24} />
+                                          <span className="text-sm font-medium text-blue-600">RM Samples Received (Last 2 Days)</span>
                                     </div>
                                     <div className="text-3xl font-bold text-blue-600">
-                                          <AnimatedCounter value={qcData.total_sample_qc.Pending} />
+                                          <AnimatedCounter value={qcData.total_sample_qc_rm.jumlah_kedatangan} />
                                     </div>
                               </div>
                               <div className="text-center">
                                     <div className="flex items-center justify-center mb-2">
-                                          <FileText className="text-purple-500 mr-2" size={24} />
-                                          <span className="text-sm font-medium text-purple-600">Total Processed</span>
+                                          <Boxes className="text-purple-500 mr-2" size={24} />
+                                          <span className="text-sm font-medium text-purple-600">PM Samples Received (Last 2 Days)</span>
                                     </div>
                                     <div className="text-3xl font-bold text-purple-600">
-                                          <AnimatedCounter value={qcData.total_sample_qc.jumlah_total_sampel_rmpm} />
+                                          <AnimatedCounter value={qcData.total_sample_qc_pm.jumlah_kedatangan} />
                                     </div>
                               </div>
                         </div>
