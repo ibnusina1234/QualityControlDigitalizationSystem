@@ -16,6 +16,7 @@ const fs = require("fs");
 const cookieParser = require("cookie-parser");
 const uploadRoute = require("./routers/uploadRouter");
 const scopes = ["https://www.googleapis.com/auth/drive.file"];
+const rmpmRoutes = require("./routers/dashboardRMPMRoutes");
 
 ///Buat URL autentikasi Google
 app.get("/auth/google", (req, res) => {
@@ -78,6 +79,7 @@ app.use("/uploads", express.static(path.join(__dirname, "public/uploads")));
 app.use("/users", userRoutes);
 app.use("/cards", ksRoutes);
 app.use("/api", uploadRoute);
+app.use("/dashboardRMPM", rmpmRoutes);
 
 // Handle 404 Not Found
 app.use((req, res) => {
