@@ -411,11 +411,11 @@ function Navbar({ handleLogout }) {
                                                 </MenuItem>
                                           </MenuList>
                                     </Menu>
-                                    {/* {isLoggedIn && ( */}
+                                    {isLoggedIn && (
                                           <>
                                                 <Menu>
-                                                      {/* <Tooltip label="Dashboard" placement="bottom"> */}
-                                                            {/* <MenuButton
+                                                      {/* <Tooltip label="Dashboard" placement="bottom">
+                                                            <MenuButton
                                                                   as={Button}
                                                                   variant="ghost"
                                                                   colorScheme="teal"
@@ -424,8 +424,8 @@ function Navbar({ handleLogout }) {
                                                                   px={{ base: 2, md: 3, lg: 4 }}
                                                             >
                                                                   Document
-                                                            </MenuButton> */}
-                                                      {/* </Tooltip> */}
+                                                            </MenuButton>
+                                                      </Tooltip> */}
                                                       <MenuList shadow="lg" p={1}>
                                                             {/* Submenu trigger with hover */}
                                                             <Box
@@ -544,12 +544,12 @@ function Navbar({ handleLogout }) {
                                                 </Menu>
 
                                           </>
-                                    {/* )} */}
-                                    {/* {isLoggedIn && ( 
-                                           {/* <>  */}
-                                                {/* <Menu> */}
-                                                      {/* <Tooltip label="Dashboard" placement="bottom"> */}
-                                                            {/* <MenuButton 
+                                    )}
+                                    {isLoggedIn && (
+                                          <>
+                                                <Menu>
+                                                      {/* <Tooltip label="Dashboard" placement="bottom">
+                                                            <MenuButton
                                                                   as={Button}
                                                                   variant="ghost"
                                                                   colorScheme="teal"
@@ -558,8 +558,8 @@ function Navbar({ handleLogout }) {
                                                                   px={{ base: 2, md: 3, lg: 4 }}
                                                             >
                                                                   Logbook
-                                                            </MenuButton> */}
-                                                      {/* </Tooltip> */}
+                                                            </MenuButton>
+                                                      </Tooltip> */}
                                                       <MenuList shadow="lg" p={1}>
                                                             {/* Submenu trigger with hover */}
                                                             <Box
@@ -780,11 +780,11 @@ function Navbar({ handleLogout }) {
 
                                                                   </Collapse>
                                                             </Box>
-                                                      </MenuList> 
-                                                {/* </Menu> */}
+                                                      </MenuList>
+                                                </Menu>
 
-                                          {/* </> */}
-                                    {/* )} */}
+                                          </>
+                                    )}
                               </HStack>
 
                               {/* Right Side - User Menu, Notifications, Theme Toggle */}
