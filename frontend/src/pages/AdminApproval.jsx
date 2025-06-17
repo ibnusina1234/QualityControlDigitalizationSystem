@@ -139,7 +139,7 @@ const AdminApproval = () => {
 
       return (
             <>
-                  {isAdmin ? (
+                  {isAdmin && isSuperAdmin ? (
                         <Box p={8} mt={20}>
                               <FormControl mb={4}>
                                     <FormLabel>ID</FormLabel>
@@ -156,7 +156,7 @@ const AdminApproval = () => {
                                           onChange={(e) => setUserRole(e.target.value)}
                                           placeholder="Pilih role"
                                     >
-                                          {isSuperAdmin && <option value="super_admin">super admin</option>}
+                                          {isSuperAdmin && <option value="super admin">super admin</option>}
                                           <option value="admin">Admin</option>
                                           <option value="user">User</option>
                                     </Select>
