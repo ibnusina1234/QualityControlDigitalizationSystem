@@ -232,7 +232,7 @@ const handleSave = async () => {
           value={roleFilter}
           onChange={(e) => setRoleFilter(e.target.value)}
         >
-          <option value="super_admin">Super Admin</option>
+          <option value="super admin">Super Admin</option>
           <option value="admin">Admin</option>
           <option value="user">User</option>
         </Select>
@@ -350,7 +350,7 @@ const handleSave = async () => {
                 value={editingUser?.userrole || ""}
                 onChange={handleChange}
               >
-                {isSuperAdmin && <option value="super_admin">Super Admin</option>}
+                {isSuperAdmin && <option value="super admin">Super Admin</option>}
                 {(isAdmin || isSuperAdmin) && <option value="admin">Admin</option>}
                 {(isAdmin || isSuperAdmin) && <option value="user">User</option>}
               </Select>
