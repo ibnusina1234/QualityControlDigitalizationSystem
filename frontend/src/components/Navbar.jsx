@@ -113,14 +113,18 @@ function Navbar({ handleLogout }) {
 
       useEffect(() => {
             let interval;
-            if (isLoggedIn && user?.userrole === "admin") {
+            const allowedRoles = ["admin", "super admin"];
+
+            if (isLoggedIn && allowedRoles.includes(user?.userrole)) {
                   fetchPendingUsers();
                   interval = setInterval(() => {
                         fetchPendingUsers();
                   }, 10000);
             }
+
             return () => clearInterval(interval);
       }, [isLoggedIn, user, fetchPendingUsers]);
+
 
       const navbarBg = colorMode === "light" ? "white" : "gray.800";
       const accentColor = colorMode === "light" ? "teal.500" : "teal.300";
