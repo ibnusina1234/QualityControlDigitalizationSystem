@@ -1,6 +1,7 @@
 const moment = require("moment-timezone");
 const jwt = require("jsonwebtoken");
 const db = require("../database/index");
+const db1 = require("../database/db");
 
 exports.searchUserLogs = async (req, res) => {
   const filters = req.query;
@@ -18,7 +19,7 @@ exports.searchUserLogs = async (req, res) => {
   sql += " ORDER BY created_at DESC";
 
   try {
-    const [results] = await db.query(sql, values);
+    const [results] = await db1.query(sql, values);
     res.json(results);
   } catch (err) {
     console.error("Database query error:", err);
