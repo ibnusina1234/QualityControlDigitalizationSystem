@@ -546,8 +546,8 @@ function Navbar({ handleLogout }) {
                                           </>
                                     {/* )} */}
                                     {/* {isLoggedIn && ( */}
-                                          <>
-                                                <Menu>
+                                          {/* <> */}
+                                                {/* <Menu> */}
                                                       <Tooltip label="Dashboard" placement="bottom">
                                                             <MenuButton
                                                                   as={Button}
@@ -781,9 +781,9 @@ function Navbar({ handleLogout }) {
                                                                   </Collapse>
                                                             </Box>
                                                       </MenuList>
-                                                </Menu>
+                                                {/* </Menu> */}
 
-                                          </>
+                                          {/* </> */}
                                     {/* )} */}
                               </HStack>
 
