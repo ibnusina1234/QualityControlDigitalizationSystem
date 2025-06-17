@@ -22,7 +22,7 @@ exports.getDashboardData = async (req, res) => {
       SHEETS.map(async (name) => {
         const result = await sheets.spreadsheets.values.get({
           spreadsheetId: SPREADSHEET_ID,
-          range: `${name}!A1:I2`, // Ambil header dan baris data
+          range: `${name}!A1:U2`, // Ambil header dan baris data
         });
         const values = result.data.values || [];
         return {
