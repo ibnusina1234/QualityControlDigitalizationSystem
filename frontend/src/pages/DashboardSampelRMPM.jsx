@@ -83,7 +83,7 @@ export default function SampleMonitoringDashboard() {
     setLoading(true);
     try {
       // Replace the URL below with your real API endpoint!
-      const response = await fetch("http://localhost:8081/dashboardRMPM/dashboardRMPM-data"); // <-- Ganti ke endpoint backend kamu
+      const response = await fetch("http://10.126.15.141:8081/dashboardRMPM/dashboardRMPM-data"); // <-- Ganti ke endpoint backend kamu
       if (!response.ok) throw new Error("Failed to fetch data");
       const data = await response.json();
       setQcData(data);
