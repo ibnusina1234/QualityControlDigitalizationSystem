@@ -1,7 +1,7 @@
 const { google } = require('googleapis');
 const path = require('path');
 
-const SERVICE_ACCOUNT_FILE =  path.resolve(__dirname, '..', 'key', 'credentials.json');// Pastikan path benar
+const SERVICE_ACCOUNT_FILE = path.resolve(__dirname, '../', '../', 'key', 'credentials.json');// Pastikan path benar
 const SPREADSHEET_ID = '1n-bisi0QRv2m8MZhYUhVjW3Fb5q8iWvfaSarVaMDs2g';
 const SHEETS = ['total_sample_qc', 'total_sample_qc_rm', 'total_sample_qc_pm'];
 
