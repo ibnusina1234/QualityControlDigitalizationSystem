@@ -7,7 +7,7 @@ const path = require("path");
 const SCOPES = ["https://www.googleapis.com/auth/drive.file"];
 
 const auth = new google.auth.GoogleAuth({
-  keyFile: path.join(__dirname, "../key/credentials.json"), // Pastikan path benar
+  keyFile:  path.resolve(__dirname, '..', 'key', 'credentials.json'),// Pastikan path benar
   scopes: SCOPES,
 });
 
