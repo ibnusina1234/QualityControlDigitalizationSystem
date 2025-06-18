@@ -23,7 +23,7 @@ exports.searchUserLogs = async (req, res) => {
   sql += " ORDER BY created_at DESC";
 
   try {
-    const [results] = await db.execute(sql, values);
+    const [results] = await db1.execute(sql, values);
     res.status(200).json(results);
   } catch (err) {
     console.error("Database query error:", err.message || err);
