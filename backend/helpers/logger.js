@@ -1,23 +1,22 @@
-const db = require("../database/index");
+const db = require("../database/db");
 
-const logActivity = (userId, activity, req) => {
-  return new Promise((resolve, reject) => {
-    const ip = req.ip || req.connection.remoteAddress;
-    const userAgent = req.headers["user-agent"];
+const logActivity = async (userId, activity, req) => {
+  try {
+    const ip = req.ip || req.connection.remoteAddress || "";
+    const userAgent = req.headers["user-agent"] || "";
 
     const sql = `
       INSERT INTO user_logs (user_id, activity, ip_address, user_agent)
       VALUES (?, ?, ?, ?)
     `;
 
-    db.query(sql, [userId, activity, ip, userAgent], (err) => {
-      if (err) {
-        console.error("Gagal mencatat log:", err.message);
-        return reject(err); // <-- reject Promise jika error
-      }
-      resolve(); // <-- resolve jika sukses
-    });
-  });
+    await db.execute(sql, [userId, activity, ip, userAgent]);
+
+  } catch (err) {
+    console.error("Gagal mencatat log:", err.message);
+    // Kalau kamu ingin melempar lagi, bisa gunakan:
+    // throw err;
+  }
 };
 
 module.exports = logActivity;
