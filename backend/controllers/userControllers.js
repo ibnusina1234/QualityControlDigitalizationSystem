@@ -513,8 +513,6 @@ exports.checkRole = (roles) => {
   };
 };
 
-const db = require("../database/db"); // pastikan db ini menggunakan .promise()
-
 exports.countQCUsers = async (req, res) => {
   try {
     const [rows] = await db.execute(
