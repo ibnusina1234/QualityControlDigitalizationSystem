@@ -84,11 +84,25 @@ export default function KelolaUser() {
     }
   };
 
+  // LOGIC AKSES
+  function canEdit(user) {
+    if (isSuperAdmin) return true;
+    if (isAdmin && user.userrole !== "super admin") return true;
+    return false;
+  }
+  function canDelete(user) {
+    if (isSuperAdmin) return true;
+    if (isAdmin && user.userrole !== "super admin") return true;
+    return false;
+  }
+
+  // MODAL EDIT
   const handleEdit = (user) => {
     setEditingUser(user);
     onOpen();
   };
 
+  // DELETE SINGLE
   const handleDelete = (id) => {
     setUserToDelete(id);
     onDeleteAlertOpen();
@@ -120,14 +134,25 @@ export default function KelolaUser() {
     }
   };
 
-  // Filtering multi-delete so isAdmin can't multi-delete admin
+  // MULTI DELETE (Perbaikan: admin tidak bisa pilih super admin)
   const handleMultiDelete = async () => {
     let idsToDelete = selectedUsers;
     if (isAdmin) {
-      // Only allow delete if selected user is admin
+      // Admin tidak boleh hapus super admin
       idsToDelete = selectedUsers.filter(
-        (id) => users.find((u) => u.id === id)?.userrole === "admin"
+        (id) => users.find((u) => u.id === id)?.userrole !== "super admin"
       );
+    }
+    // super admin bisa hapus semua
+    if (idsToDelete.length === 0) {
+      toast({
+        title: "Tidak ada user yang bisa dihapus.",
+        status: "warning",
+        duration: 3000,
+        isClosable: true,
+      });
+      onMultiDeleteClose();
+      return;
     }
     try {
       await Promise.all(
@@ -158,41 +183,65 @@ export default function KelolaUser() {
     }
   };
 
+  // CEKBOX
   const handleCheckboxChange = (id) => {
     setSelectedUsers((prev) =>
       prev.includes(id) ? prev.filter((userId) => userId !== id) : [...prev, id]
     );
   };
 
+  // SELECT ALL (hanya user yang boleh dihapus yang bisa dipilih semua!)
   const handleSelectAll = () => {
-    if (selectedUsers.length === paginatedUsers.length) {
-      setSelectedUsers([]);
+    const selectableIds = paginatedUsers
+      .filter((user) => canDelete(user))
+      .map((user) => user.id);
+
+    if (selectableIds.length === 0) return;
+
+    if (
+      selectableIds.every((id) => selectedUsers.includes(id)) &&
+      selectedUsers.length === selectableIds.length
+    ) {
+      // Jika semua sudah ke-select, unselect semua
+      setSelectedUsers(
+        selectedUsers.filter((id) => !selectableIds.includes(id))
+      );
     } else {
-      setSelectedUsers(paginatedUsers.map((user) => user.id));
+      // Select all yang bisa
+      setSelectedUsers([
+        ...selectedUsers.filter((id) => !selectableIds.includes(id)),
+        ...selectableIds,
+      ]);
     }
   };
 
+  // EDIT
   const handleChange = (e) => {
     const { name, value } = e.target;
     setEditingUser({ ...editingUser, [name]: value });
   };
 
-const handleSave = async () => {
-  try {
-    // Hanya mengirim userrole, endpoint disesuaikan dengan backend baru
-    await axios.put(
-      `${process.env.REACT_APP_API_BASE_URL}/users/userrole/${editingUser.id}`,
-      { userrole: editingUser.userrole },
-      { withCredentials: true }
-    );
-    await fetchUsers();
-    onClose();
-    setEditingUser(null);
-  } catch (err) {
-    console.error("Gagal update user:", err);
-  }
-};
+  const handleSave = async () => {
+    try {
+      await axios.put(
+        `${process.env.REACT_APP_API_BASE_URL}/users/userrole/${editingUser.id}`,
+        { userrole: editingUser.userrole },
+        { withCredentials: true }
+      );
+      await fetchUsers();
+      onClose();
+      setEditingUser(null);
+    } catch (err) {
+      toast({
+        title: "Gagal update user.",
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+      });
+    }
+  };
 
+  // FILTER & PAGINATION
   const filteredUsers = users
     .filter((user) =>
       `${user.nama_lengkap} ${user.email}`.toLowerCase().includes(searchTerm.toLowerCase())
@@ -204,18 +253,6 @@ const handleSave = async () => {
     (currentPage - 1) * usersPerPage,
     currentPage * usersPerPage
   );
-
-  // Logic for edit/delete button access
-  function canEdit(user) {
-    if (isSuperAdmin) return true;
-    if (isAdmin && user.userrole === "admin") return true;
-    return false;
-  }
-  function canDelete(user) {
-    if (isSuperAdmin) return true;
-    if (isAdmin && user.userrole === "admin") return true;
-    return false;
-  }
 
   return (
     <Box p={6} mt={20}>
@@ -253,9 +290,23 @@ const handleSave = async () => {
               <Th>
                 <Checkbox
                   isChecked={
-                    selectedUsers.length === paginatedUsers.length && paginatedUsers.length > 0
+                    paginatedUsers.length > 0 &&
+                    paginatedUsers
+                      .filter((user) => canDelete(user))
+                      .every((user) => selectedUsers.includes(user.id)) &&
+                    paginatedUsers.filter((user) => canDelete(user)).length > 0
+                  }
+                  isIndeterminate={
+                    selectedUsers.length > 0 &&
+                    paginatedUsers.filter((user) => canDelete(user)).some((user) =>
+                      selectedUsers.includes(user.id)
+                    ) &&
+                    !paginatedUsers
+                      .filter((user) => canDelete(user))
+                      .every((user) => selectedUsers.includes(user.id))
                   }
                   onChange={handleSelectAll}
+                  isDisabled={paginatedUsers.filter((user) => canDelete(user)).length === 0}
                 />
               </Th>
               <Th>ID</Th>
@@ -275,6 +326,7 @@ const handleSave = async () => {
                   <Checkbox
                     isChecked={selectedUsers.includes(user.id)}
                     onChange={() => handleCheckboxChange(user.id)}
+                    isDisabled={!canDelete(user)}
                   />
                 </Td>
                 <Td>{user.id}</Td>
@@ -379,6 +431,11 @@ const handleSave = async () => {
             <AlertDialogHeader>Konfirmasi Hapus</AlertDialogHeader>
             <AlertDialogBody>
               Apakah Anda yakin ingin menghapus {selectedUsers.length} user terpilih?
+              {isAdmin && selectedUsers.some(id => users.find(u => u.id === id)?.userrole === "super admin") && (
+                <Text mt={2} color="red.400">
+                  Catatan: Admin tidak bisa menghapus Super Admin. Super Admin yang dipilih akan diabaikan.
+                </Text>
+              )}
             </AlertDialogBody>
             <AlertDialogFooter>
               <Button ref={cancelRef} onClick={onMultiDeleteClose}>
