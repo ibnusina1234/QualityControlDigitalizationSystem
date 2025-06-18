@@ -1,6 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import { useSelector } from "react-redux";
 import { UserCog, FileText, Settings, Bell } from "lucide-react";
+import { useColorModeValue } from "@chakra-ui/react";
 
 const adminMenus = [
   {
@@ -38,9 +39,17 @@ export default function AdminPages() {
   const user = useSelector((state) => state.user.user); // Ambil user dari Redux
   const userRole = user?.userrole; // Ambil role dari user
 
+  // Chakra color mode values
+  const bgCard = useColorModeValue("bg-white", "bg-gray-800");
+  const shadowCard = useColorModeValue("shadow-md", "shadow-2xl");
+  const hoverShadow = useColorModeValue("hover:shadow-xl", "hover:shadow-blue-900");
+  const textTitle = useColorModeValue("text-2xl text-gray-900", "text-2xl text-white");
+  const textMenuTitle = useColorModeValue("text-lg text-gray-900", "text-lg text-white");
+  const textMenuDesc = useColorModeValue("text-sm text-gray-500", "text-sm text-gray-300");
+
   return (
     <div className="p-6 m-20">
-      <h1 className="text-2xl font-bold mb-6">Admin Dashboard</h1>
+      <h1 className={`font-bold mb-6 ${textTitle}`}>Admin Dashboard</h1>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {adminMenus.map((menu, index) => {
           // Jika menu punya roleRequired dan userRole tidak ada di array tsb, maka hide menu
@@ -52,13 +61,13 @@ export default function AdminPages() {
             <div
               key={index}
               onClick={() => navigate(menu.path)}
-              className="cursor-pointer bg-white rounded-xl shadow-md p-6 hover:shadow-xl transition-shadow duration-300"
+              className={`cursor-pointer rounded-xl p-6 transition-shadow duration-300 ${bgCard} ${shadowCard} ${hoverShadow}`}
             >
               <div className="flex items-center gap-4">
                 <div>{menu.icon}</div>
                 <div>
-                  <h2 className="font-semibold text-lg">{menu.title}</h2>
-                  <p className="text-sm text-gray-500">{menu.description}</p>
+                  <h2 className={`font-semibold ${textMenuTitle}`}>{menu.title}</h2>
+                  <p className={textMenuDesc}>{menu.description}</p>
                 </div>
               </div>
             </div>

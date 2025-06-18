@@ -141,7 +141,7 @@ exports.checkEmail = async (req, res) => {
 const getAdminEmails = async () => {
   try {
     const [rows] = await db1.execute(
-      "SELECT email FROM user WHERE userrole = ?",
+      "SELECT email FROM user WHERE userrole IN (?, ?)",
       ["admin", "super admin"]
     );
 
