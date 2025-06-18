@@ -8,21 +8,25 @@ exports.searchUserLogs = async (req, res) => {
   let sql = "SELECT * FROM user_logs WHERE 1=1";
   const values = [];
 
+  // Filter yang diperbolehkan
   const allowedFilters = ["user_id", "activity", "ip_address", "user_agent"];
-  Object.entries(filters).forEach(([key, value]) => {
-    if (allowedFilters.includes(key)) {
+
+  // Bangun query dinamis
+  for (const [key, value] of Object.entries(filters)) {
+    if (allowedFilters.includes(key) && value !== undefined && value !== "") {
       sql += ` AND ${key} = ?`;
       values.push(value);
     }
-  });
+  }
 
+  // Tambahkan urutan hasil
   sql += " ORDER BY created_at DESC";
 
   try {
-    const [results] = await db1.query(sql, values);
-    res.json(results);
+    const [results] = await db.execute(sql, values);
+    res.status(200).json(results);
   } catch (err) {
-    console.error("Database query error:", err);
+    console.error("Database query error:", err.message || err);
     res.status(500).json({ error: "Internal server error" });
   }
 };
