@@ -1,8 +1,8 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { jwtDecode } from 'jwt-decode';
 import { useNavigate } from 'react-router-dom';
 import ApprovalLoginPopup from '../components/confirmLogin';
 import Notes from '../components/NotesForSamplingCard';
+import { useSelector } from "react-redux";
 import {
       Box,
       Button,
@@ -20,8 +20,8 @@ import {
 
 export default function ApprovalsSamplingCard() {
       const [approveId, setApproveId] = useState('');
-      const [approveRole, setApproveRole] = useState('');
-      const [approveName, setApproveName] = useState('');
+      const role = useSelector ((state)=> state.user.userrole);
+      const nama = useSelector ((state) => state.user.nama_lengkap);
       const [name, setName] = useState('');
       const [unapprovedList, setUnapprovedList] = useState([]);
       const [approvedList, setApprovedList] = useState([]);
@@ -57,21 +57,6 @@ export default function ApprovalsSamplingCard() {
       const bgFooter = useColorModeValue("bg-white border-t border-gray-200", "bg-[#181827] border-t border-gray-800");
       const textFooter = useColorModeValue("text-gray-500", "text-gray-300");
 
-      // Fetch user info from token
-      useEffect(() => {
-            const token = localStorage.getItem('token');
-            if (token) {
-                  try {
-                        const decoded = jwtDecode(token);
-                        setApproveName(decoded.nama);
-                        setApproveRole(decoded.jabatan);
-                        setName(decoded.nama); // Set name from token as well
-                  } catch (e) {
-                        console.error('Invalid token', e);
-                  }
-            }
-      }, []); // Runs only once when the component mounts
-
       // Fetch unapproved list filtered by role - wrapped in useCallback
       const fetchUnapprovedList = useCallback(async () => {
             try {
@@ -95,11 +80,11 @@ export default function ApprovalsSamplingCard() {
                   if (Array.isArray(data)) {
                         // Filter based on user role and approval status
                         const filteredData = data.filter(item => {
-                              if (approveRole === 'SUPERVISOR QC' && item.qc_supervisor_approved === 0) {
+                              if (role === 'SUPERVISOR QC' && item.qc_supervisor_approved === 0) {
                                     return true;
-                              } else if (approveRole === 'MANAGER QC' && item.qc_supervisor_approved === 1 && item.qc_manager_approved === 0) {
+                              } else if (role === 'MANAGER QC' && item.qc_supervisor_approved === 1 && item.qc_manager_approved === 0) {
                                     return true;
-                              } else if (approveRole === 'MANAGER QA' && item.qc_supervisor_approved === 1 && item.qc_manager_approved === 1 && item.qa_manager_approved === 0) {
+                              } else if (role === 'MANAGER QA' && item.qc_supervisor_approved === 1 && item.qc_manager_approved === 1 && item.qa_manager_approved === 0) {
                                     return true;
                               }
                               return false;
@@ -120,7 +105,7 @@ export default function ApprovalsSamplingCard() {
             } finally {
                   setLoading(false);
             }
-      }, [approveRole]);
+      }, [role]);
 
       const handleViewNotes = (item) => {
             setSelectedItem(item);
@@ -167,13 +152,13 @@ export default function ApprovalsSamplingCard() {
             }
       }, []);
 
-      // Fetch unapproved and approved lists when approveRole changes
+      // Fetch unapproved and approved lists when role changes
       useEffect(() => {
-            if (approveRole) {
+            if (role) {
                   fetchUnapprovedList();
                   fetchApprovedList();
             }
-      }, [approveRole, fetchUnapprovedList, fetchApprovedList]); // Now includes all dependencies
+      }, [role, fetchUnapprovedList, fetchApprovedList]); // Now includes all dependencies
 
       const showSuccessMessage = (message) => {
             setSuccessMessage(message);
@@ -233,7 +218,7 @@ export default function ApprovalsSamplingCard() {
                         body: JSON.stringify({
                               sampling_card_id: Number(approveId),
                               name,
-                              role: approveRole,
+                              role: role,
                               approval_status: 1 // Explicitly set value to 1 for approval
                         }),
                         signal: controller.signal
@@ -251,7 +236,7 @@ export default function ApprovalsSamplingCard() {
 
                   // Check both success and warning as both are valid responses from your backend
                   if (data.status === 'success' || data.status === 'warning') {
-                        showSuccessMessage(`${data.message} (${approveRole})`);
+                        showSuccessMessage(`${data.message} (${role})`);
                         setApproveId('');
 
                         // Refresh both lists after successful action - with try/catch to prevent cascade failures
@@ -299,7 +284,7 @@ export default function ApprovalsSamplingCard() {
                         body: JSON.stringify({
                               sampling_card_id: Number(approveId),
                               name,
-                              role: approveRole,
+                              role: role,
                               approval_status: 2, // Set value to 2 for rejection
                               notes: notes
                         }),
@@ -318,7 +303,7 @@ export default function ApprovalsSamplingCard() {
 
                   // Check both success and warning as both are valid responses from your backend
                   if (data.status === 'success' || data.status === 'warning') {
-                        showSuccessMessage(`${data.message} (${approveRole})`);
+                        showSuccessMessage(`${data.message} (${role})`);
                         setApproveId('');
 
                         // Refresh both lists after successful action - with try/catch to prevent cascade failures
@@ -477,7 +462,7 @@ export default function ApprovalsSamplingCard() {
                                           </div>
                                     </div>
 
-                                    {["SUPERVISOR QC", "MANAGER QC", "MANAGER QA"].includes(approveRole) && (
+                                    {["SUPERVISOR QC", "MANAGER QC", "MANAGER QA"].includes(role) && (
                                           <div className={`${bgCard} rounded-lg ${shadowCard} p-5 border ${borderSection}`}>
                                                 <h2 className={`text-lg font-medium mb-4 ${textHeader} border-b pb-2 ${borderSection}`}>Approve Card</h2>
                                                 <div className="space-y-4">
@@ -497,7 +482,7 @@ export default function ApprovalsSamplingCard() {
                                                             <input
                                                                   type="text"
                                                                   className={`w-full p-2 border rounded-md ${borderSection} focus:ring-blue-500 focus:border-blue-500 bg-transparent ${textHeader}`}
-                                                                  value={approveRole}
+                                                                  value={role}
                                                                   readOnly
                                                             />
                                                       </div>
@@ -507,7 +492,7 @@ export default function ApprovalsSamplingCard() {
                                                                   type="text"
                                                                   placeholder="Enter your name"
                                                                   className={`w-full p-2 border rounded-md ${borderSection} focus:ring-blue-500 focus:border-blue-500 bg-transparent ${textHeader}`}
-                                                                  value={approveName}
+                                                                  value={nama}
                                                                   onChange={(e) => setName(e.target.value)}
                                                                   readOnly
                                                             />
@@ -538,7 +523,7 @@ export default function ApprovalsSamplingCard() {
                                     {/* Tab navigation */}
                                     <div className={`mb-4 ${tabBorder}`}>
                                           <nav className="flex -mb-px space-x-8">
-                                                {["SUPERVISOR QC", "MANAGER QC", "MANAGER QA"].includes(approveRole) && (
+                                                {["SUPERVISOR QC", "MANAGER QC", "MANAGER QA"].includes(role) && (
                                                       <button
                                                             onClick={() => setActiveTab('unapproved')}
                                                             className={`py-4 px-1 font-medium text-sm border-b-2 ${activeTab === 'unapproved'
@@ -564,7 +549,7 @@ export default function ApprovalsSamplingCard() {
 
                                     {/* Tab content */}
                                     <div className={`${bgCard} ${shadowCard} rounded-lg border ${borderSection}`}>
-                                          {activeTab === 'unapproved' && ["SUPERVISOR QC", "MANAGER QC", "MANAGER QA"].includes(approveRole) && (
+                                          {activeTab === 'unapproved' && ["SUPERVISOR QC", "MANAGER QC", "MANAGER QA"].includes(role) && (
                                                 <div className="p-5">
                                                       <div className="flex justify-between items-center mb-4">
                                                             <h2 className={`text-lg font-medium ${textHeader}`}>Pending Approval Cards</h2>
@@ -689,10 +674,10 @@ export default function ApprovalsSamplingCard() {
                                                                                                 <td className="px-3 py-4 whitespace-nowrap text-sm">
                                                                                                       <div className="flex items-center space-x-1">
                                                                                                             <span className={`inline-flex items-center justify-center h-6 w-6 rounded-full text-xs font-medium ${item.qc_supervisor_approved === 1
-                                                                                                                        ? badgeStepActive
-                                                                                                                        : item.qc_supervisor_approved === 2
-                                                                                                                              ? badgeStepRejected
-                                                                                                                              : badgeStepInactive
+                                                                                                                  ? badgeStepActive
+                                                                                                                  : item.qc_supervisor_approved === 2
+                                                                                                                        ? badgeStepRejected
+                                                                                                                        : badgeStepInactive
                                                                                                                   }`}>
                                                                                                                   QCS
                                                                                                             </span>
@@ -700,10 +685,10 @@ export default function ApprovalsSamplingCard() {
                                                                                                                   <path d="M5 12h14"></path>
                                                                                                             </svg>
                                                                                                             <span className={`inline-flex items-center justify-center h-6 w-6 rounded-full text-xs font-medium ${item.qc_manager_approved === 1
-                                                                                                                        ? badgeStepActive
-                                                                                                                        : item.qc_manager_approved === 2
-                                                                                                                              ? badgeStepRejected
-                                                                                                                              : badgeStepInactive
+                                                                                                                  ? badgeStepActive
+                                                                                                                  : item.qc_manager_approved === 2
+                                                                                                                        ? badgeStepRejected
+                                                                                                                        : badgeStepInactive
                                                                                                                   }`}>
                                                                                                                   QCM
                                                                                                             </span>
@@ -711,10 +696,10 @@ export default function ApprovalsSamplingCard() {
                                                                                                                   <path d="M5 12h14"></path>
                                                                                                             </svg>
                                                                                                             <span className={`inline-flex items-center justify-center h-6 w-6 rounded-full text-xs font-medium ${item.qa_manager_approved === 1
-                                                                                                                        ? badgeStepActive
-                                                                                                                        : item.qa_manager_approved === 2
-                                                                                                                              ? badgeStepRejected
-                                                                                                                              : badgeStepInactive
+                                                                                                                  ? badgeStepActive
+                                                                                                                  : item.qa_manager_approved === 2
+                                                                                                                        ? badgeStepRejected
+                                                                                                                        : badgeStepInactive
                                                                                                                   }`}>
                                                                                                                   QAM
                                                                                                             </span>

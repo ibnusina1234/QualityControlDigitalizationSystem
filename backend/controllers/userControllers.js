@@ -513,27 +513,31 @@ exports.checkRole = (roles) => {
   };
 };
 
+const db = require("../database/db"); // pastikan db ini menggunakan .promise()
+
 exports.countQCUsers = async (req, res) => {
   try {
-    const [rows] = await db1.query(
+    const [rows] = await db.execute(
       "SELECT COUNT(*) AS count FROM user WHERE departement = ?",
       ["QC"]
     );
 
     return res.status(200).json({
       success: true,
-      count: rows[0].count,
+      count: rows[0]?.count || 0,
     });
   } catch (error) {
     if (process.env.NODE_ENV !== "production") {
       console.error("Error counting QC users:", error?.message || error);
     }
+
     return res.status(500).json({
       success: false,
       message: "Terjadi kesalahan pada server",
     });
   }
 };
+
 
 // Request password reset
 exports.requestPasswordReset = async (req, res) => {

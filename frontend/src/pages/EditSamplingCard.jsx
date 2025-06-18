@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import { useSelector } from "react-redux";
 import {
       Spinner,
       Text,
@@ -18,6 +19,7 @@ import DOMPurify from "dompurify";
 // All useColorModeValue calls must be inside the main component body.
 
 export default function SamplingCardForm() {
+      const inisial = useSelector((state) => state.user.inisial);
       const Navigate = useNavigate();
       const { id } = useParams();
       const isEditMode = !!id;
@@ -374,7 +376,7 @@ export default function SamplingCardForm() {
                               mikro: sanitizeInput(form.samples.mikro),
                               uji_luar: sanitizeInput(form.samples.uji_luar),
                         },
-                        created_by: "ibnu",
+                        created_by: inisial,
                   };
 
                   const uploadedLinks = JSON.parse(localStorage.getItem("uploadedImageLinks")) || [];
