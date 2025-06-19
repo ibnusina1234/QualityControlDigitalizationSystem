@@ -296,11 +296,11 @@ export default function QCTeamEditor() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-100">
+    <div className="min-h-screen bg-gray-100 mt-20">
       {/* Header */}
       <div className="bg-white shadow-md p-4">
         <div className="max-w-7xl mx-auto flex justify-between items-center">
-          <h1 className="text-3xl font-bold text-gray-800">QC Team Page Editor</h1>
+          <h1 className="text-3xl font-bold text-gray-800">Home Editor</h1>
           <div className="flex gap-4">
             <button
               onClick={() => setPreviewMode(true)}

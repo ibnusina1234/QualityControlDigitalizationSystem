@@ -22,8 +22,9 @@ const adminMenus = [
     title: "Pengaturan",
     description: "Ubah konfigurasi sistem.",
     icon: <Settings className="h-8 w-8 text-yellow-500" />,
-    path: "/EditHome"
-    // Tidak ada roleRequired berarti semua admin/super admin bisa lihat
+    path: "/EditHome",
+     roleRequired: ["admin", "super admin"],
+     jabatanRequired : ["ADMIN QC"]
   },
   {
     title: "Notifikasi",
@@ -32,12 +33,19 @@ const adminMenus = [
     path: "/admin/notifications",
     // Tidak ada roleRequired berarti semua admin/super admin bisa lihat
   },
+    {
+    title: "Edit Profil",
+    description: "Ubah data diri.",
+    icon: <Settings className="h-8 w-8 text-yellow-500" />,
+    path: "/EditHome",
+  },
 ];
 
 export default function AdminPages() {
   const navigate = useNavigate();
   const user = useSelector((state) => state.user.user); // Ambil user dari Redux
-  const userRole = user?.userrole; // Ambil role dari user
+  const userRole = user?.userrole; 
+  const userJabatan =user?.jabatan;
 
   // Chakra color mode values
   const bgCard = useColorModeValue("bg-white", "bg-gray-800");
@@ -53,7 +61,7 @@ export default function AdminPages() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {adminMenus.map((menu, index) => {
           // Jika menu punya roleRequired dan userRole tidak ada di array tsb, maka hide menu
-          if (menu.roleRequired && !menu.roleRequired.includes(userRole)) {
+          if ((menu.roleRequired && !menu.roleRequired.includes(userRole)) || (menu.jabatanRequired && !menu.jabatanRequired.includes(userJabatan))) {
             return null;
           }
 
