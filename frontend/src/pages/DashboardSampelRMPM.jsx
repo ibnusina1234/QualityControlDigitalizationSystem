@@ -102,15 +102,20 @@ const BreakdownMonthlyBox = ({ data, title, color, onClose }) => {
 };
 
 // Parse namaMaterial (dan batch jika ada, format: namaMaterial: ..., ... | noBatch: ..., ...)
-const parseMaterialList = (raw, withBatch = false) => {
-  if (!raw || raw === "namaMaterial: ") return [];
-  if (withBatch && raw.includes("|")) {
-    const mat = raw.split("|")[0].replace("namaMaterial: ", "").split(",").map(s => s.trim());
-    const batch = raw.split("|")[1].replace("noBatch: ", "").split(",").map(s => s.trim());
-    return mat.map((nama, i) => ({ nama, batch: batch[i] || "" }));
+const parseMaterialList = (raw) => {
+  if (Array.isArray(raw) && raw.length && typeof raw[0] === 'object' && 'nama' in raw[0] && 'batch' in raw[0]) {
+    return raw;
   }
-  // hanya nama material
-  return raw.replace("namaMaterial: ", "").split(",").map(x => ({ nama: x.trim() })).filter(x => x.nama);
+  if (typeof raw === "string" && raw.startsWith("namaMaterial: ")) {
+    const [namaStr, batchStr] = raw.split("|").map(s => s.trim());
+    if (batchStr) {
+      const mat = namaStr.replace("namaMaterial: ", "").split(",").map(s => s.trim());
+      const batch = batchStr.replace("noBatch: ", "").split(",").map(s => s.trim());
+      return mat.map((nama, i) => ({ nama, batch: batch[i] || "" }));
+    }
+    return namaStr.replace("namaMaterial: ", "").split(",").map(x => ({ nama: x.trim(), batch: "" })).filter(x => x.nama);
+  }
+  return [];
 };
 
 // Modal Table Component
