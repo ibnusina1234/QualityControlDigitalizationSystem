@@ -115,8 +115,23 @@ const parseMaterialList = (raw, withBatch = false) => {
 
 // Modal Table Component
 const ModalMaterialList = ({ open, title, data, onClose }) => {
+  const [currentPage, setCurrentPage] = useState(1);
+  const rowsPerPage = 5;
+
   if (!open) return null;
+
   const hasBatch = data.length > 0 && data[0]?.batch !== undefined;
+  const totalPages = Math.ceil(data.length / rowsPerPage);
+
+  const startIndex = (currentPage - 1) * rowsPerPage;
+  const currentData = data.slice(startIndex, startIndex + rowsPerPage);
+
+  const goToPage = (page) => {
+    if (page >= 1 && page <= totalPages) {
+      setCurrentPage(page);
+    }
+  };
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30">
       <div className="bg-white dark:bg-gray-900 p-6 rounded-xl shadow-xl w-full max-w-md relative">
@@ -124,7 +139,8 @@ const ModalMaterialList = ({ open, title, data, onClose }) => {
           <XCircle size={20} />
         </button>
         <h3 className="text-lg font-bold mb-4">{title}</h3>
-        <table className="w-full text-sm border">
+
+        <table className="w-full text-sm border mb-4">
           <thead>
             <tr className="bg-gray-100 dark:bg-gray-800">
               <th className="px-2 py-1 border">No</th>
@@ -133,17 +149,56 @@ const ModalMaterialList = ({ open, title, data, onClose }) => {
             </tr>
           </thead>
           <tbody>
-            {data.length === 0 ? (
-              <tr><td colSpan={hasBatch ? 3 : 2} className="text-center py-2">Tidak ada data</td></tr>
-            ) : data.map((row, i) =>
-              <tr key={i}>
-                <td className="border px-2 py-1">{i + 1}</td>
-                <td className="border px-2 py-1">{row.nama}</td>
-                {hasBatch && <td className="border px-2 py-1">{row.batch}</td>}
+            {currentData.length === 0 ? (
+              <tr>
+                <td colSpan={hasBatch ? 3 : 2} className="text-center py-2">
+                  Tidak ada data
+                </td>
               </tr>
+            ) : (
+              currentData.map((row, i) => (
+                <tr key={i}>
+                  <td className="border px-2 py-1">{startIndex + i + 1}</td>
+                  <td className="border px-2 py-1">{row.nama}</td>
+                  {hasBatch && <td className="border px-2 py-1">{row.batch}</td>}
+                </tr>
+              ))
             )}
           </tbody>
         </table>
+
+        {/* Pagination Controls */}
+        {totalPages > 1 && (
+          <div className="flex justify-center items-center gap-2">
+            <button
+              className="px-2 py-1 border rounded disabled:opacity-50"
+              onClick={() => goToPage(currentPage - 1)}
+              disabled={currentPage === 1}
+            >
+              &laquo;
+            </button>
+            {Array.from({ length: totalPages }, (_, i) => (
+              <button
+                key={i}
+                className={`px-2 py-1 border rounded ${
+                  currentPage === i + 1
+                    ? "bg-blue-500 text-white"
+                    : "hover:bg-gray-200 dark:hover:bg-gray-700"
+                }`}
+                onClick={() => goToPage(i + 1)}
+              >
+                {i + 1}
+              </button>
+            ))}
+            <button
+              className="px-2 py-1 border rounded disabled:opacity-50"
+              onClick={() => goToPage(currentPage + 1)}
+              disabled={currentPage === totalPages}
+            >
+              &raquo;
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );
