@@ -3,6 +3,7 @@ const path = require('path');
 
 const SERVICE_ACCOUNT_FILE = path.resolve(__dirname, '../', '../', 'key', 'credentials.json');
 const SPREADSHEET_ID = '1n-bisi0QRv2m8MZhYUhVjW3Fb5q8iWvfaSarVaMDs2g';
+
 const SHEETS = [
   'total_sample_qc',
   'total_sample_qc_rm',
@@ -26,52 +27,60 @@ exports.getDashboardData = async (req, res) => {
       SHEETS.map(async (name) => {
         const result = await sheets.spreadsheets.values.get({
           spreadsheetId: SPREADSHEET_ID,
-          range: `${name}!A1:U3`, // Ambil header + 2 baris data
+          range: `${name}!A1:U3`,
         });
 
         const values = result.data.values || [];
         const header = values[0] || [];
-        const rowNama = values[1] || [];
-        const rowBatch = values[2] || [];
+        const row1 = values[1] || [];
+        const row2 = values[2] || [];
 
-        const sheetObj = {};
+        let parsed = {};
 
-        header.forEach((col, index) => {
-          const namaRaw = rowNama[index] || '';
-          const batchRaw = rowBatch[index] || '';
+        if (name.startsWith('total_sample')) {
+          // === TOTAL SUMMARY ===
+          parsed = {};
+          header.forEach((h, i) => {
+            parsed[h] = row1[i] || '';
+          });
+        } else {
+          // === ARRAY OF { nama, batch } ===
+          parsed = {};
+          header.forEach((col, i) => {
+            const namaRaw = row1[i] || '';
+            const batchRaw = row2[i] || '';
 
-          // Bersihkan dan pisahkan jadi array
-          const namaList = namaRaw
-            .replace(/^namaMaterial:\s*/i, '')
-            .split(/\s*,\s*/)
-            .map((v) => v.trim())
-            .filter(Boolean);
+            const namaList = namaRaw
+              .replace(/^namaMaterial:\s*/i, '')
+              .split(/\s*,\s*/)
+              .map((v) => v.trim())
+              .filter(Boolean);
 
-          const batchList = batchRaw
-            .replace(/^batch:\s*/i, '')
-            .replace(/;/g, ',')
-            .split(/\s*,\s*/)
-            .map((v) => v.trim())
-            .filter(Boolean);
+            const batchList = batchRaw
+              .replace(/^batch:\s*/i, '')
+              .replace(/;/g, ',')
+              .split(/\s*,\s*/)
+              .map((v) => v.trim())
+              .filter(Boolean);
 
-          // Gabungkan berdasarkan urutan (hanya jika ada pasangan nama+batch)
-          const combined = [];
-          const maxLength = Math.max(namaList.length, batchList.length);
-          for (let i = 0; i < maxLength; i++) {
-            if (namaList[i] && batchList[i]) {
-              combined.push({
-                nama: namaList[i],
-                batch: batchList[i],
-              });
+            const combined = [];
+            const max = Math.max(namaList.length, batchList.length);
+            for (let j = 0; j < max; j++) {
+              if (namaList[j] && batchList[j]) {
+                combined.push({
+                  nama: namaList[j],
+                  batch: batchList[j],
+                });
+              }
             }
-          }
 
-          sheetObj[col] = combined;
-        });
+            parsed[col] = combined;
+          });
+        }
 
         return {
           name,
-          data: sheetObj,
+          data: parsed,
         };
       })
     );
