@@ -515,7 +515,7 @@ exports.checkRole = (roles) => {
 
 exports.countQCUsers = async (req, res) => {
   try {
-    const [rows] = await db.execute(
+    const [rows] = await db1.execute(
       "SELECT COUNT(*) AS count FROM user WHERE departement = ?",
       ["QC"]
     );
