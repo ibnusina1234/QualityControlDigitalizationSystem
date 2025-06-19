@@ -3,7 +3,7 @@ const path = require('path');
 
 const SERVICE_ACCOUNT_FILE = path.resolve(__dirname, '../', '../', 'key', 'credentials.json');// Pastikan path benar
 const SPREADSHEET_ID = '1n-bisi0QRv2m8MZhYUhVjW3Fb5q8iWvfaSarVaMDs2g';
-const SHEETS = ['total_sample_qc', 'total_sample_qc_rm', 'total_sample_qc_pm'];
+const SHEETS = ['total_sample_qc', 'total_sample_qc_rm', 'total_sample_qc_pm','daftar_kedatangan','daftar_pending_pm','daftar_pending_rm'];
 
 const auth = new google.auth.GoogleAuth({
   keyFile: SERVICE_ACCOUNT_FILE,
