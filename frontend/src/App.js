@@ -31,6 +31,7 @@ import UploadToGdrive from "./pages/UploadToGdrive";
 import SamplingHistory from "./components/KartuSamplingHal2";
 import SamplingHistoryForm from "./pages/SamplingHistroyForm";
 import GalleryPDFFormat from "./components/FormatPdfForGalerry";
+import QCTeamEditor from "./components/EditHomePages";
 
 const config = {
   initialColorMode: "light",
@@ -160,6 +161,14 @@ function App() {
           element={
             <ProtectedRoute isLoggedIn={isLoggedIn}>
               <UploadToGdrive />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/EditHome"
+          element={
+            <ProtectedRoute isLoggedIn={isLoggedIn}>
+              <QCTeamEditor />
             </ProtectedRoute>
           }
         />

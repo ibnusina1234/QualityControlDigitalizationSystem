@@ -22,7 +22,7 @@ const adminMenus = [
     title: "Pengaturan",
     description: "Ubah konfigurasi sistem.",
     icon: <Settings className="h-8 w-8 text-yellow-500" />,
-    path: "/Edit"
+    path: "/EditHome"
     // Tidak ada roleRequired berarti semua admin/super admin bisa lihat
   },
   {

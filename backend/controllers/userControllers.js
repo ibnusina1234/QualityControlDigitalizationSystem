@@ -826,7 +826,7 @@ exports.sendTemperatureAlert = async (req, res) => {
     }
 
     const [rows] = await db1.query(
-      "SELECT email FROM user WHERE departement = 'QC"
+      "SELECT email FROM user WHERE departement = 'QC'"
     );
     const emailList = rows.map((row) => row.email);
 
