@@ -11,9 +11,7 @@ const jwt = require("jsonwebtoken");
 const PDFDocument = require("pdfkit");
 const { body, validationResult } = require("express-validator");
 const { v4: uuidv4 } = require("uuid");
-const {
-  updateProfileSchema,
-} = require("../Validations/userValidations");
+const { updateProfileSchema } = require("../Validations/userValidations");
 
 // Konfigurasi Nodemailer
 const transporter = nodemailer.createTransport({
@@ -336,7 +334,7 @@ exports.verifyToken = (req, res) => {
 
 // Get user profile
 exports.getProfile = async (req, res) => {
-      const userId = req.user.id;
+  const userId = req.user.id;
   if (!userId) {
     return res.status(400).json({ error: "User ID is required" });
   }
@@ -380,14 +378,8 @@ exports.updateProfile = async (req, res) => {
   }
 
   // Destructuring nilai hasil validasi
-  const {
-    email,
-    nama_lengkap,
-    inisial,
-    departement,
-    jabatan,
-    userrole,
-  } = value;
+  const { email, nama_lengkap, inisial, departement, jabatan, userrole } =
+    value;
 
   try {
     let sql = `
@@ -432,7 +424,6 @@ exports.updateProfile = async (req, res) => {
     res.status(500).json({ error: "Internal server error" });
   }
 };
-
 
 // Controller: Update userrole saja (oleh admin/super admin)
 exports.updateUserRole = async (req, res) => {
@@ -535,7 +526,6 @@ exports.countQCUsers = async (req, res) => {
     });
   }
 };
-
 
 // Request password reset
 exports.requestPasswordReset = async (req, res) => {
@@ -695,15 +685,13 @@ exports.getUserById = async (req, res) => {
 
     // Log the activity of viewing user details
     if (req.user?.id) {
-      logActivity(
-        req.user.id,
-        `View User Detail (ID: ${userId})`,
-        req
-      ).catch((logErr) => {
-        if (process.env.NODE_ENV !== "production") {
-          console.warn("Gagal log aktivitas:", logErr.message);
+      logActivity(req.user.id, `View User Detail (ID: ${userId})`, req).catch(
+        (logErr) => {
+          if (process.env.NODE_ENV !== "production") {
+            console.warn("Gagal log aktivitas:", logErr.message);
+          }
         }
-      });
+      );
     }
 
     res.json(results[0]);
@@ -784,7 +772,7 @@ exports.deleteUserById = async (req, res) => {
 
     // Log the user deletion activity
     if (req.user?.id) {
-      logActivity(req.user.id, `Delete User (ID: ${email})`, req).catch(
+      logActivity(req.user.id, `Delete User (ID: ${id})`, req).catch(
         (logErr) => {
           if (process.env.NODE_ENV !== "production") {
             console.warn("Gagal log aktivitas:", logErr.message);
