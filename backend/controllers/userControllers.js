@@ -797,7 +797,7 @@ let lastSent = {};
 exports.sendTemperatureAlert = async (req, res) => {
   try {
     const { room, temperature, time } = req.body;
-    if (!room || !temperature || !time) {
+    if (!room || temperature === undefined || !time) {
       return res
         .status(400)
         .json({ success: false, message: "Missing parameters" });
@@ -813,20 +813,44 @@ exports.sendTemperatureAlert = async (req, res) => {
       });
     }
 
-    const [rows] = await db1.query(
+    // Hanya kirim email jika suhu di luar rentang 20–28
+    if (temperature >= 20 && temperature <= 28) {
+      return res.status(200).json({
+        success: true,
+        message: "Temperature is within normal range. No alert sent.",
+      });
+    }
+
+    const [rows] = await db.query(
       "SELECT email FROM user WHERE departement = 'QC'"
     );
     const emailList = rows.map((row) => row.email);
+    const roundedTemp = parseFloat(temperature).toFixed(1);
+
+    let warningMessage = "";
+    let subject = "";
+
+    if (temperature < 20) {
+      subject = `⚠️ Suhu Rendah di ${room}`;
+      warningMessage = `
+        <p><strong>Waspada!</strong> Suhu di <strong>${room}</strong> kurang dari batas normal.</p>
+        <p>Suhu saat ini: <strong>${roundedTemp}°C</strong></p>
+        <p>Waktu: ${new Date(time).toLocaleString()}</p>
+      `;
+    } else if (temperature > 28) {
+      subject = `⚠️ Suhu Tinggi di ${room}`;
+      warningMessage = `
+        <p><strong>Waspada!</strong> Suhu di <strong>${room}</strong> melebihi batas normal.</p>
+        <p>Suhu saat ini: <strong>${roundedTemp}°C</strong></p>
+        <p>Waktu: ${new Date(time).toLocaleString()}</p>
+      `;
+    }
 
     const mailOptions = {
       from: `"Monitoring QC" <${process.env.EMAIL_USER}>`,
-      to: emailList.join(","), // gabungkan jadi string
-      subject: `⚠️ Suhu Tinggi di ${room}`,
-      html: `
-        <p><strong>Waspada!</strong> Suhu di <strong>${room}</strong> melebihi batas normal.</p>
-        <p>Suhu saat ini: <strong>${temperature}°C</strong></p>
-        <p>Waktu: ${new Date(time).toLocaleString()}</p>
-      `,
+      to: emailList.join(","),
+      subject,
+      html: warningMessage,
     };
 
     await transporter.sendMail(mailOptions);

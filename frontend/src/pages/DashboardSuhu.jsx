@@ -143,7 +143,7 @@ const Dashboard = () => {
                                                 const lastSent = lastAlertSent[room];
                                                 const oneHour = 60 * 60 * 1000;
 
-                                                if (!isNaN(temperature) && temperature > 25) {
+                                                if (!isNaN(temperature) && (temperature < 20 || temperature > 28)) {
                                                       if (!lastSent || timestamp - new Date(lastSent) > oneHour) {
                                                             sendAlertToBackend({ room, temperature, time: timestamp.toISOString() });
                                                             setLastAlertSent((prev) => ({
@@ -307,14 +307,14 @@ const Dashboard = () => {
 
       const getStatusColor = (temp) => {
             if (isNaN(temp)) return "gray.500";
-            if (temp > 25) return "red.500";
+            if (temp > 28) return "red.500";
             if (temp < 20) return "blue.500";
             return "green.500";
       };
 
       const getStatusText = (temp) => {
             if (isNaN(temp)) return "Tidak ada data";
-            if (temp > 25) return "Suhu Tinggi";
+            if (temp > 28) return "Suhu Tinggi";
             if (temp < 20) return "Suhu Rendah";
             return "Normal";
       };
@@ -337,67 +337,88 @@ const Dashboard = () => {
             second: '2-digit'
       });
 
-      // Opsi Temperature Chart (tambahkan annotation garis merah di 25°C)
-      const tempChartOptions = {
-            ...commonOptions,
-            scales: {
-                  ...commonOptions.scales,
-                  y: {
-                        min: 20,
-                        max: 28,
-                        ticks: {
-                              stepSize: 1,
-                              callback: function (value) { return value + '°C'; },
-                              color: useColorModeValue("#666", "#ccc"),
-                              font: { size: 10 }
-                        },
-                        grid: { color: useColorModeValue("#f0f0f0", "#333") },
-                        border: { display: true },
-                  },
+      // Opsi Temperature Chart (tambahkan annotation garis merah di 20 dan 28 °C)
+     const tempChartOptions = {
+  ...commonOptions,
+  scales: {
+    ...commonOptions.scales,
+    y: {
+      min: 20,
+      max: 28,
+      ticks: {
+        stepSize: 1,
+        callback: function (value) { return value + '°C'; },
+        color: useColorModeValue("#666", "#ccc"),
+        font: { size: 10 }
+      },
+      grid: { color: useColorModeValue("#f0f0f0", "#333") },
+      border: { display: true },
+    },
+  },
+  plugins: {
+    ...commonOptions.plugins,
+    annotation: {
+      annotations: {
+        limitAtas: {
+          type: 'line',
+          yMin: 28,
+          yMax: 28,
+          borderColor: 'red',
+          borderWidth: 2,
+          borderDash: [6, 4],
+          label: {
+            content: 'Limit Atas (28°C)',
+            enabled: true,
+            position: "start",
+            color: 'red',
+            backgroundColor: 'white',
+            font: {
+              weight: 'bold',
+              size: 10
             },
-            plugins: {
-                  ...commonOptions.plugins,
-                  annotation: {
-                        annotations: {
-                              lineLimit: {
-                                    type: 'line',
-                                    yMin: 25,
-                                    yMax: 25,
-                                    borderColor: 'red',
-                                    borderWidth: 2,
-                                    borderDash: [6, 4],
-                                    label: {
-                                          content: 'Limit Atas (25°C)',
-                                          enabled: true,
-                                          position: "start",
-                                          color: 'red',
-                                          backgroundColor: 'white',
-                                          font: {
-                                                weight: 'bold',
-                                                size: 10
-                                          },
-                                          yAdjust: -8,
-                                          xAdjust: 40,
-                                    },
-                              }
-                        }
-                  },
-                  title: {
-                        display: true,
-                        text: 'Range: 20°C - 26°C',
-                        position: 'bottom',
-                        padding: {
-                              top: 2,
-                              bottom: 0
-                        },
-                        font: {
-                              size: 10,
-                              style: 'italic'
-                        },
-                        color: useColorModeValue("#666", "#ccc"),
-                  }
-            }
-      };
+            yAdjust: -8,
+            xAdjust: 40,
+          }
+        },
+        limitBawah: {
+          type: 'line',
+          yMin: 20,
+          yMax: 20,
+          borderColor: 'red', // diganti jadi merah
+          borderWidth: 2,
+          borderDash: [6, 4],
+          label: {
+            content: 'Limit Bawah (20°C)',
+            enabled: true,
+            position: "start",
+            color: 'red', // juga merah
+            backgroundColor: 'white',
+            font: {
+              weight: 'bold',
+              size: 10
+            },
+            yAdjust: -8,
+            xAdjust: 40,
+          }
+        }
+      }
+    },
+    title: {
+      display: true,
+      text: 'Range: 20°C - 28°C',
+      position: 'bottom',
+      padding: {
+        top: 2,
+        bottom: 0
+      },
+      font: {
+        size: 10,
+        style: 'italic'
+      },
+      color: useColorModeValue("#666", "#ccc"),
+    }
+  }
+};
 
       // Detect desktop (lg and up) or not
       const isDesktop = useBreakpointValue({ base: false, lg: true });
@@ -547,7 +568,7 @@ const Dashboard = () => {
                                           {Object.entries(data).map(([room, values], index) => {
                                                 const temperature = parseFloat(values.Temperature);
                                                 const humidity = parseFloat(values.RH);
-                                                const isWarning = !isNaN(temperature) && temperature > 25;
+                                               const isWarning = !isNaN(temperature) && (temperature < 20 || temperature > 28);
                                                 const statusColor = getStatusColor(temperature);
                                                 const statusText = getStatusText(temperature);
 
