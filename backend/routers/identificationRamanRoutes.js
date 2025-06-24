@@ -14,7 +14,6 @@ router.post("/request", ramanController.createRamanRequest);
 
 // GET: All requests across all batch (global dashboard)
 router.get("/all-requests", async (req, res) => {
-  const db = require("../database/db1ForKS");
   try {
     const [rows] = await db1.query(`
       
@@ -65,7 +64,6 @@ router.get("/all-requests", async (req, res) => {
 
 // Get materialId by name
 router.get("/material-id", async (req, res) => {
-  const db= require("../database/db1ForKS");
   const { name } = req.query;
   if (!name) return res.status(400).json({ message: "Missing name" });
   const [rows] = await db1.query(
@@ -91,7 +89,6 @@ router.get("/sheet-batch", async (req, res) => {
 
 // Check batch exist by material_id & batch_number
 router.get("/batch-exist", async (req, res) => {
-  const db = require("../database/db1ForKS");
   const { material_id, batch_number } = req.query;
   if (!material_id || !batch_number)
     return res.status(400).json({ message: "Missing params" });

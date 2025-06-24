@@ -1,4 +1,3 @@
-const db = require("../database/db1ForKS");
 const dayjs = require("dayjs");
 require("dayjs/plugin/utc");
 require("dayjs/plugin/timezone");
