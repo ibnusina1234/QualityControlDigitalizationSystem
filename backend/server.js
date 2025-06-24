@@ -5,6 +5,8 @@ const bodyParser = require("body-parser");
 const path = require("path");
 const userRoutes = require("./routers/userRoutes");
 const ksRoutes = require("./routers/cardSamplingRoutes");
+const raman = require("./routers/identificationRamanRoutes");
+const bot = require("./routers/telegramBotRoutes");
 const http = require("http");
 const socketIo = require("socket.io");
 const app = express();
@@ -46,7 +48,7 @@ app.get("/oauth2callback", async (req, res) => {
 //Middleware
 app.use(
   cors({
-    origin: [process.env.FRONTEND_URL, 'http://localhost:3000'],
+    origin: [process.env.FRONTEND_URL, "http://localhost:3000"],
     credentials: true,
     methods: ["GET", "POST", "PATCH", "PUT", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],
@@ -81,6 +83,8 @@ app.use("/users", userRoutes);
 app.use("/cards", ksRoutes);
 app.use("/api", uploadRoute);
 app.use("/dashboardRMPM", rmpmRoutes);
+app.use("/Raman", raman);
+app.use("/bot", bot);
 
 // Handle 404 Not Found
 app.use((req, res) => {

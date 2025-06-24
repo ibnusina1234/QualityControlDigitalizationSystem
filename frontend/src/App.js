@@ -32,6 +32,7 @@ import SamplingHistory from "./components/KartuSamplingHal2";
 import SamplingHistoryForm from "./pages/SamplingHistroyForm";
 import GalleryPDFFormat from "./components/FormatPdfForGalerry";
 import QCTeamEditor from "./components/EditHomePages";
+import RamanDashboard from "./pages/IdentifikasiRaman";
 
 const config = {
   initialColorMode: "light",
@@ -143,6 +144,14 @@ function App() {
               <ProtectedRoute isLoggedIn={isLoggedIn}>
                 <AdminPages />
               </ProtectedRoute>
+            </AuthLoader>
+          }
+        />
+        <Route
+          path="/RamanDashboard"
+          element={
+            <AuthLoader>
+                <RamanDashboard />{" "}
             </AuthLoader>
           }
         />

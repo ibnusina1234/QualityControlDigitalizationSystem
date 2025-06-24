@@ -789,6 +789,39 @@ function Navbar({ handleLogout }) {
 
                                           </>
                                     )}
+                                      {/* menu other */}
+                                    {isLoggedIn && (
+                                          <>
+                                                <Menu>
+                                                      <Tooltip label="Other" placement="bottom">
+                                                            <MenuButton
+                                                                  as={Button}
+                                                                  variant="ghost"
+                                                                  colorScheme="teal"
+                                                                  size={{ base: "sm", md: "sm", lg: "md" }}
+                                                                  fontSize={{ base: "xs", md: "sm", lg: "md" }}
+                                                                  px={{ base: 2, md: 3, lg: 4 }}>
+                                                                  Other
+                                                            </MenuButton>
+                                                      </Tooltip>
+                                                      <MenuList shadow="lg" p={1}>
+                                                            {/* Submenu trigger with hover*/}
+                                                              <MenuItem
+                                                      icon={<RiDashboardLine />}
+                                                      as={Link}
+                                                      to="/RamanDashboard"
+                                                      _hover={{ bg: "teal.50", color: "teal.600" }}
+                                                      borderRadius="md"
+                                                      p={3}
+                                                      fontSize={{ base: "sm", md: "md" }}
+                                                >
+                                                      Raman
+                                                </MenuItem>
+                                                      </MenuList>
+                                                </Menu>
+
+                                          </>
+                                    )}
                               </HStack>
 
                               {/* Right Side - User Menu, Notifications, Theme Toggle */}
