@@ -886,8 +886,7 @@ const RamanDashboard = () => {
                                     </div>
                                     <div className="space-y-3 max-h-96 overflow-y-auto">
                                           {[...completed]
-                                                .slice(-10) // Ambil 10 data terakhir
-                                                .reverse()  // Opsional: agar urutannya dari yang terbaru ke terlama
+                                                .slice(0,10)
                                                 .map((item) => (
                                                       <div
                                                             key={item.id}
