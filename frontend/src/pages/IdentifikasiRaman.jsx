@@ -371,25 +371,36 @@ const RamanDashboard = () => {
 
 
       // Toggle vat selection (QC) - tidak bisa pilih kalau sudah pernah dipilih di batch yang sama
-      const toggleVat = (requestId, vatNumber, batchNumber, materialId) => {
-            const usedVats = usedVatsByBatch[`${batchNumber}__${materialId}`] || [];
-            if (usedVats.includes(vatNumber)) return;
-            setOnProgress(prevProgress =>
-                  prevProgress.map(item => {
-                        if (item.id === requestId) {
-                              const currentSelected = item.selectedVats || [];
-                              const isSelected = currentSelected.includes(vatNumber);
-                              return {
-                                    ...item,
-                                    selectedVats: isSelected
-                                          ? currentSelected.filter(v => v !== vatNumber)
-                                          : [...currentSelected, vatNumber]
-                              };
-                        }
-                        return item;
-                  })
-            );
-      };
+    const toggleVat = (requestId, vatNumber, batchNumber, materialId) => {
+    const usedVats = usedVatsByBatch[`${batchNumber}__${materialId}`] || [];
+    if (usedVats.includes(vatNumber)) return;
+
+    setOnProgress(prevProgress => {
+        const updatedProgress = prevProgress.map(item => {
+            if (item.id === requestId) {
+                const currentSelected = item.selectedVats || [];
+                const isSelected = currentSelected.includes(vatNumber);
+                return {
+                    ...item,
+                    selectedVats: isSelected
+                        ? currentSelected.filter(v => v !== vatNumber)
+                        : [...currentSelected, vatNumber]
+                };
+            }
+            return item;
+        });
+
+        // Update modal item dari updatedProgress
+        const updatedItem = updatedProgress.find(item => item.id === requestId);
+        setVatModalOpen(prev => ({
+            ...prev,
+            item: updatedItem
+        }));
+
+        return updatedProgress;
+    });
+};
+
 
       // Submit progress to complete (QC)
       const submitProgress = async (request) => {
@@ -841,62 +852,13 @@ const RamanDashboard = () => {
                                                                         onClick={() => toggleVat(vatModalOpen.item.id, vatNum, vatModalOpen.item.batch_number, vatModalOpen.item.material_id)}
                                                                         disabled={isUsed}
                                                                         className={`p-3 text-sm rounded-lg border-2 transition-all
-                                                                                      ${isSelected
+                                                                                ${isSelected
                                                                                     ? 'bg-green-100 border-green-500 text-green-700'
                                                                                     : isUsed
                                                                                           ? 'bg-gray-200 border-gray-400 text-gray-400 cursor-not-allowed'
                                                                                           : 'bg-gray-50 border-gray-300 text-gray-700 hover:bg-gray-100'
                                                                               }`}
-                                                                  >{vatModalOpen.isOpen && (
-                                                                        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-                                                                              <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4 max-h-[80vh] overflow-y-auto">
-                                                                                    <div className="flex justify-between items-center mb-4">
-                                                                                          <h3 className="text-lg font-semibold text-gray-900">Select Vats</h3>
-                                                                                          <button
-                                                                                                onClick={() => setVatModalOpen({ isOpen: false, item: null, usedVats: [] })}
-                                                                                                className="text-gray-500 hover:text-gray-700"
-                                                                                          >
-                                                                                                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                                                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                                                                                                </svg>
-                                                                                          </button>
-                                                                                    </div>
-
-                                                                                    <div className="mb-4">
-                                                                                          <p className="text-sm text-gray-600">Material: {vatModalOpen.item?.materials.join(', ')}</p>
-                                                                                          <p className="text-sm text-gray-600">Batch: {vatModalOpen.item?.batch_number || '-'}</p>
-                                                                                          <p className="text-sm text-gray-600">Total Vats: {vatModalOpen.item?.vatCount}</p>
-                                                                                    </div>
-
-                                                                                    <div className="grid grid-cols-4 gap-2 mb-4">
-                                                                                          {Array.from({ length: vatModalOpen.item?.vatCount || 0 }, (_, i) => i + 1).map(vatNum => {
-                                                                                                const isUsed = vatModalOpen.usedVats.includes(vatNum);
-                                                                                                const isSelected = (vatModalOpen.item?.selectedVats || []).includes(vatNum);
-                                                                                                return (
-                                                                                                      <button
-                                                                                                            key={vatNum}
-                                                                                                            onClick={() => {
-                                                                                                                  if (!isUsed) {
-                                                                                                                        toggleVat(vatModalOpen.item.id, vatNum, vatModalOpen.item.batch_number, vatModalOpen.item.material_id);
-                                                                                                                  }
-                                                                                                            }}
-                                                                                                            disabled={isUsed}
-                                                                                                            className={`p-3 text-sm rounded-lg border-2 transition-all duration-200 font-medium
-                                ${isSelected
-                                                                                                                        ? 'bg-green-100 border-green-500 text-green-700 shadow-sm'
-                                                                                                                        : isUsed
-                                                                                                                              ? 'bg-gray-200 border-gray-400 text-gray-400 cursor-not-allowed opacity-60'
-                                                                                                                              : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50 hover:border-gray-400 active:bg-gray-100'
-                                                                                                                  }`}
-                                                                                                      >
-                                                                                                            Vat {vatNum}
-                                                                                                      </button>
-                                                                                                );
-                                                                                          })}
-                                                                                    </div>
-                                                                              </div>
-                                                                        </div>
-                                                                  )}
+                                                                  >
                                                                         Vat {vatNum}
                                                                   </button>
                                                             );
@@ -935,7 +897,7 @@ const RamanDashboard = () => {
                                     </div>
                                     <div className="space-y-3 max-h-96 overflow-y-auto">
                                           {[...completed]
-                                                .slice(0, 10)
+                                                .slice(0,10)
                                                 .map((item) => (
                                                       <div
                                                             key={item.id}
