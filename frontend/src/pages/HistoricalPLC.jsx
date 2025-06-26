@@ -82,21 +82,32 @@ const TemperatureChart = ({ temperatureData, timestamps }) => {
 
       ctx.stroke();
 
-      // Red line at 25°C
-      if (tempMax > 28 && tempMin < 20) {
-        const y25 = height - 40 - (height - 70) * (25 - tempMin) / (tempMax - tempMin || 1);
-        ctx.strokeStyle = 'red';
-        ctx.lineWidth = 1.5;
-        ctx.setLineDash([5, 5]);
-        ctx.beginPath();
-        ctx.moveTo(50, y25);
-        ctx.lineTo(width - 20, y25);
-        ctx.stroke();
-        ctx.setLineDash([]);
-        ctx.font = 'bold 11px Arial';
-        ctx.fillStyle = 'red';
-        ctx.fillText('25°C', width - 60, y25 - 5);
-      }
+    if (tempMin < 20) {
+  const y20 = height - 40 - (height - 70) * (20 - tempMin) / (tempMax - tempMin || 1);
+  ctx.strokeStyle = 'red';
+  ctx.setLineDash([5, 5]);
+  ctx.beginPath();
+  ctx.moveTo(50, y20);
+  ctx.lineTo(width - 20, y20);
+  ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.font = 'bold 11px Arial';
+  ctx.fillStyle = 'red';
+  ctx.fillText('20°C', width - 60, y20 - 5);
+}
+if (tempMax > 28) {
+  const y28 = height - 40 - (height - 70) * (28 - tempMin) / (tempMax - tempMin || 1);
+  ctx.strokeStyle = 'red';
+  ctx.setLineDash([5, 5]);
+  ctx.beginPath();
+  ctx.moveTo(50, y28);
+  ctx.lineTo(width - 20, y28);
+  ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.font = 'bold 11px Arial';
+  ctx.fillStyle = 'red';
+  ctx.fillText('28°C', width - 60, y28 - 5);
+}
 
       // Axes
       ctx.strokeStyle = '#888';
