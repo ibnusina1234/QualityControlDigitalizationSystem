@@ -6,6 +6,7 @@ import FullCompleteModal from './FullCompleteModal';
 import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc';
 import timezone from 'dayjs/plugin/timezone';
+import { useColorModeValue } from '@chakra-ui/react';
 dayjs.extend(utc);
 dayjs.extend(timezone);
 
@@ -40,13 +41,35 @@ const RamanDashboard = () => {
       const [selectedComplete, setSelectedComplete] = useState(null);
 
       // Map batch_number + material_id ke daftar vats yang sudah pernah dipilih
-      const [usedVatsByBatch, setUsedVatsByBatch] = useState({}); // { [`batchNumber__materialId`]: [1,2,3] }
+      const [usedVatsByBatch, setUsedVatsByBatch] = useState({});
+
+      // ----- DARK/LIGHT MODE THEME -----
+      const bgMain = useColorModeValue("bg-gradient-to-br from-blue-50 to-indigo-100", "bg-gradient-to-br from-gray-900 to-blue-950");
+      const bgMainQC = useColorModeValue("bg-gradient-to-br from-purple-50 to-pink-100", "bg-gradient-to-br from-gray-900 to-purple-950");
+      const cardBg = useColorModeValue("bg-white", "bg-gray-800");
+      const cardShadow = useColorModeValue("shadow-sm", "shadow-md");
+      const textMain = useColorModeValue("text-gray-900", "text-gray-100");
+      const textSecondary = useColorModeValue("text-gray-600", "text-gray-400");
+      const borderColor = useColorModeValue("border-gray-200", "border-gray-700");
+      const borderInput = useColorModeValue("border-gray-300", "border-gray-600");
+      const inputBg = useColorModeValue("bg-white", "bg-gray-900");
+      const inputText = useColorModeValue("text-gray-900", "text-gray-100");
+      const btnPrimary = useColorModeValue("bg-indigo-600 hover:bg-indigo-700", "bg-indigo-700 hover:bg-indigo-800");
+      const btnPrimaryQC = useColorModeValue("bg-purple-600 hover:bg-purple-700", "bg-purple-700 hover:bg-purple-800");
+      const btnSecondary = useColorModeValue("bg-gray-100 hover:bg-gray-200", "bg-gray-800 hover:bg-gray-700");
+      const bgHighlight = useColorModeValue("bg-yellow-50", "bg-yellow-900/40");
+      const borderHighlight = useColorModeValue("border-yellow-200", "border-yellow-600");
+      const bgDelete = useColorModeValue("bg-red-500 hover:bg-red-600", "bg-red-700 hover:bg-red-800");
+      const modalOverlay = useColorModeValue("bg-black bg-opacity-50", "bg-black bg-opacity-60");
+      const bgModal = useColorModeValue("bg-white", "bg-gray-800");
+      const modalText = useColorModeValue("text-gray-900", "text-gray-200");
+      const modalInput = useColorModeValue("bg-gray-50", "bg-gray-700");
+      const tableHover = useColorModeValue("hover:bg-gray-50", "hover:bg-gray-700/40");
+      // ---------------------------------
 
       function toLocaleID(dt) {
             if (!dt) return '';
-            // Pastikan dt adalah string ISO/UTC
             const date = typeof dt === 'string' ? new Date(dt) : dt;
-            // Tambah 7 jam (dalam milidetik)
             const wib = new Date(date.getTime() + 7 * 60 * 60 * 1000);
             return new Intl.DateTimeFormat('id-ID', {
                   hour12: false,
@@ -104,7 +127,6 @@ const RamanDashboard = () => {
 
       useEffect(() => {
             fetchRequests();
-            // eslint-disable-next-line
       }, []);
 
       // Add material input (with batch and vat)
@@ -232,29 +254,23 @@ const RamanDashboard = () => {
                                     operator_id: idOperator,
                                     batch_number: data.batch_number,
                                     vat_count: Number(data.vat_count),
-                                    requested_at: new Date(new Date().toISOString()) // ensure UTC
+                                    requested_at: new Date(new Date().toISOString())
                               })
                         )
                   );
                   // Kirim Telegram setelah request
                   try {
-                        // Susun pesan Telegram dari semua request yang dikirim
                         let pesanTelegram = `📦 <b>Request Raman Baru</b>\n`;
                         pesanTelegram += `Operator: <b>${inisial}</b>\n`;
                         requestsToSend.forEach((req, idx) => {
                               pesanTelegram += `\n<b>Material ${idx + 1}:</b> ${req.material}\nBatch: <b>${req.batch_number}</b>\nJumlah Vat: <b>${req.vat_count}</b>\n`;
                         });
-                        pesanTelegram += `\nWaktu: ${(new Date())}`;;
+                        pesanTelegram += `\nWaktu: ${(new Date())}`;
 
                         await axios.post(`${API_BASE}/bot/telegram/send`, {
                               message: pesanTelegram
-                              // chat_id: bisa ditambah jika mau override
                         });
-                  } catch (err) {
-                        // Optional: alert jika gagal kirim Telegram
-                        // alert('Gagal mengirim notifikasi Telegram');
-                  }
-
+                  } catch (err) {}
                   setMaterials(['']);
                   setBatchOptions([[]]);
                   setBatchNumbers(['']);
@@ -286,7 +302,6 @@ const RamanDashboard = () => {
             return vats.size;
       };
 
-      // Fetch daftar used vats untuk batch tertentu
       const fetchUsedVats = useCallback(async (batchNumber, materialId) => {
             if (!batchNumber || !materialId) return [];
             try {
@@ -297,7 +312,6 @@ const RamanDashboard = () => {
             }
       }, []);
 
-      // Set used vats untuk setiap batch_number + material_id pada onProgress dan completed
       useEffect(() => {
             const uniqueBatches = {};
             onProgress.forEach(item => {
@@ -329,7 +343,7 @@ const RamanDashboard = () => {
             try {
                   const body = {
                         inspector_id: idInspektor,
-                        processed_at: new Date(new Date().toISOString()) // ensure UTC
+                        processed_at: new Date(new Date().toISOString())
                   };
 
                   await axios.patch(`${API_BASE}/Raman/request/${currentRequest.id}/progress`, body);
@@ -366,59 +380,50 @@ const RamanDashboard = () => {
             }
       };
 
-
-
-
-
       // Toggle vat selection (QC) - tidak bisa pilih kalau sudah pernah dipilih di batch yang sama
-    const toggleVat = (requestId, vatNumber, batchNumber, materialId) => {
-    const usedVats = usedVatsByBatch[`${batchNumber}__${materialId}`] || [];
-    if (usedVats.includes(vatNumber)) return;
+      const toggleVat = (requestId, vatNumber, batchNumber, materialId) => {
+            const usedVats = usedVatsByBatch[`${batchNumber}__${materialId}`] || [];
+            if (usedVats.includes(vatNumber)) return;
 
-    setOnProgress(prevProgress => {
-        const updatedProgress = prevProgress.map(item => {
-            if (item.id === requestId) {
-                const currentSelected = item.selectedVats || [];
-                const isSelected = currentSelected.includes(vatNumber);
-                return {
-                    ...item,
-                    selectedVats: isSelected
-                        ? currentSelected.filter(v => v !== vatNumber)
-                        : [...currentSelected, vatNumber]
-                };
-            }
-            return item;
-        });
+            setOnProgress(prevProgress => {
+                  const updatedProgress = prevProgress.map(item => {
+                        if (item.id === requestId) {
+                              const currentSelected = item.selectedVats || [];
+                              const isSelected = currentSelected.includes(vatNumber);
+                              return {
+                                    ...item,
+                                    selectedVats: isSelected
+                                          ? currentSelected.filter(v => v !== vatNumber)
+                                          : [...currentSelected, vatNumber]
+                              };
+                        }
+                        return item;
+                  });
 
-        // Update modal item dari updatedProgress
-        const updatedItem = updatedProgress.find(item => item.id === requestId);
-        setVatModalOpen(prev => ({
-            ...prev,
-            item: updatedItem
-        }));
+                  // Update modal item dari updatedProgress
+                  const updatedItem = updatedProgress.find(item => item.id === requestId);
+                  setVatModalOpen(prev => ({
+                        ...prev,
+                        item: updatedItem
+                  }));
 
-        return updatedProgress;
-    });
-};
-
+                  return updatedProgress;
+            });
+      };
 
       // Submit progress to complete (QC)
       const submitProgress = async (request) => {
             try {
-                  // Simpan vat yang diidentifikasi
                   await axios.post(`${API_BASE}/Raman/request/${request.id}/vats`, {
                         vats: request.selectedVats
                   });
 
-                  // Tandai complete
                   await axios.patch(`${API_BASE}/Raman/request/${request.id}/complete`, {
-                        completed_at: new Date(new Date().toISOString()) // UTC
+                        completed_at: new Date(new Date().toISOString())
                   });
 
-                  // Refresh permintaan
                   await fetchRequests();
 
-                  // Refresh used vats cache
                   if (request.batch_number && request.material_id) {
                         const vats = await fetchUsedVats(request.batch_number, request.material_id);
                         setUsedVatsByBatch(prev => ({
@@ -427,7 +432,6 @@ const RamanDashboard = () => {
                         }));
                   }
 
-                  // --- Kirim Telegram ---
                   const datetime = new Date().toLocaleString("id-ID", {
                         day: "2-digit",
                         month: "2-digit",
@@ -439,7 +443,6 @@ const RamanDashboard = () => {
 
                   const jumlahVat = request.selectedVats?.length || 0;
                   const totalVat = request.vatCount || "-";
-
                   const listVat = request.selectedVats?.map(v => `• ${v}`).join("\n") || "-";
 
                   const pesanTelegram =
@@ -451,7 +454,6 @@ const RamanDashboard = () => {
                         `Raman by: <b>${inisial}</b>\n` +
                         `Datetime: ${datetime}`;
 
-
                   await axios.post(`${API_BASE}/bot/telegram/send`, {
                         message: pesanTelegram,
                   });
@@ -462,8 +464,6 @@ const RamanDashboard = () => {
             }
       };
 
-
-
       // Show complete detail
       const showCompleteDetail = (item) => {
             setSelectedComplete(item);
@@ -471,11 +471,11 @@ const RamanDashboard = () => {
       };
 
       const StatCard = ({ title, count, color, icon: Icon }) => (
-            <div className={`bg-white rounded-xl shadow-sm border-l-4 ${color} p-6 hover:shadow-md transition-shadow`}>
+            <div className={`${cardBg} rounded-xl ${cardShadow} border-l-4 ${color} p-6 hover:shadow-md transition-shadow`}>
                   <div className="flex items-center justify-between">
                         <div>
-                              <p className="text-sm font-medium text-gray-600">{title}</p>
-                              <p className="text-3xl font-bold text-gray-900">{count}</p>
+                              <p className={`text-sm font-medium ${textSecondary}`}>{title}</p>
+                              <p className={`text-3xl font-bold ${textMain}`}>{count}</p>
                         </div>
                         <Icon className="h-8 w-8 text-gray-400" />
                   </div>
@@ -484,18 +484,18 @@ const RamanDashboard = () => {
 
       if (pages === 'warehouse') {
             return (
-                  <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-6 mt-20">
+                  <div className={`min-h-screen ${bgMain} p-6 mt-20`}>
                         <div className="w-full">
                               {/* Header */}
-                              <div className="bg-white rounded-xl shadow-sm p-6 mb-6">
+                              <div className={`${cardBg} rounded-xl ${cardShadow} p-6 mb-6`}>
                                     <div className="flex items-center justify-between">
                                           <div>
-                                                <h1 className="text-3xl font-bold text-gray-900">Dashboard Warehouse</h1>
-                                                <p className="text-gray-600 mt-1">Identifikasi Raman - Request Material</p>
+                                                <h1 className={`text-3xl font-bold ${textMain}`}>Dashboard Warehouse</h1>
+                                                <p className={`${textSecondary} mt-1`}>Identifikasi Raman - Request Material</p>
                                           </div>
                                           <button
                                                 onClick={() => setPages('QC')}
-                                                className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+                                                className={`px-4 py-2 ${btnPrimary} text-white rounded-lg transition-colors`}
                                           >
                                                 Switch to QC View
                                           </button>
@@ -504,20 +504,20 @@ const RamanDashboard = () => {
                               <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
                                     {/* Material Input Section - Spans 2 columns on xl screens */}
                                     <div className="xl:col-span-2">
-                                          <div className="bg-white rounded-xl shadow-sm p-6 h-full">
+                                          <div className={`${cardBg} rounded-xl ${cardShadow} p-6 h-full`}>
                                                 <div className="flex items-center mb-6">
-                                                      <Package className="h-6 w-6 text-indigo-600 mr-3" />
-                                                      <h2 className="text-xl font-semibold text-gray-900">Input Material untuk Identifikasi Raman</h2>
+                                                      <Package className="h-6 w-6 text-indigo-600 dark:text-indigo-300 mr-3" />
+                                                      <h2 className={`text-xl font-semibold ${textMain}`}>Input Material untuk Identifikasi Raman</h2>
                                                 </div>
                                                 {/* Operator Name Input */}
                                                 <div className="mb-6">
-                                                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                                                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
                                                             Nama Operator Warehouse
                                                       </label>
                                                       <input
                                                             type="text"
                                                             value={inisial}
-                                                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
+                                                            className={`w-full px-4 py-3 border ${borderInput} ${inputBg} ${inputText} rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all`}
                                                             readOnly
                                                       />
                                                 </div>
@@ -528,7 +528,7 @@ const RamanDashboard = () => {
                                                                         <select
                                                                               value={material}
                                                                               onChange={(e) => updateMaterial(idx, e.target.value)}
-                                                                              className="w-full px-4 py-3 mb-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
+                                                                              className={`w-full px-4 py-3 mb-2 border ${borderInput} ${inputBg} ${inputText} rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all`}
                                                                         >
                                                                               <option value="">Pilih Material</option>
                                                                               <option value="MAGNESIUM STEARAT">MAGNESIUM STEARAT</option>
@@ -538,9 +538,8 @@ const RamanDashboard = () => {
                                                                         {/* Dropdown batch jika ada, dan input manual */}
                                                                         <div className="flex space-x-2 items-center">
                                                                               <select
-                                                                                    className="w-1/2 px-4 py-3 mb-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                                                                                    className={`w-1/2 px-4 py-3 mb-2 border ${borderInput} ${inputBg} ${inputText} rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent`}
                                                                                     value={
-                                                                                          // Show "" if not in list, so manual input is prioritized
                                                                                           (batchOptions[idx] || []).some(b => b.batch_number === batchNumbers[idx])
                                                                                                 ? batchNumbers[idx]
                                                                                                 : ""
@@ -556,14 +555,13 @@ const RamanDashboard = () => {
                                                                                     ))}
                                                                               </select>
                                                                               <input
-                                                                                    className="w-1/2 px-4 py-3 mb-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                                                                                    className={`w-1/2 px-4 py-3 mb-2 border ${borderInput} ${inputBg} ${inputText} rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent`}
                                                                                     type="text"
                                                                                     placeholder="Input Manual Batch"
                                                                                     value={batchNumbers[idx]}
                                                                                     onChange={e => handleBatchNumberInput(idx, e.target.value)}
                                                                               />
                                                                         </div>
-                                                                        {/* Input vat_count, readonly jika batch dipilih dari dropdown, bisa diisi manual jika tidak */}
                                                                         <input
                                                                               type="number"
                                                                               min="1"
@@ -571,7 +569,7 @@ const RamanDashboard = () => {
                                                                               value={vatCounts[idx]}
                                                                               onChange={e => handleVatCountInput(idx, e.target.value)}
                                                                               placeholder="Jumlah Vat"
-                                                                              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
+                                                                              className={`w-full px-4 py-3 border ${borderInput} ${inputBg} ${inputText} rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all`}
                                                                               readOnly={
                                                                                     (batchOptions[idx] || []).some(b => b.batch_number === batchNumbers[idx])
                                                                               }
@@ -583,7 +581,7 @@ const RamanDashboard = () => {
                                                                   {materials.length > 1 && (
                                                                         <button
                                                                               onClick={() => removeMaterial(idx)}
-                                                                              className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                                                                              className="p-2 text-red-600 hover:bg-red-50 dark:hover:bg-gray-900 rounded-lg transition-colors"
                                                                         >
                                                                               <X className="h-5 w-5" />
                                                                         </button>
@@ -594,7 +592,7 @@ const RamanDashboard = () => {
                                                 <div className="flex items-center justify-between mt-6">
                                                       <button
                                                             onClick={addMaterial}
-                                                            className="flex items-center px-4 py-2 text-indigo-600 border border-indigo-600 rounded-lg hover:bg-indigo-50 transition-colors"
+                                                            className="flex items-center px-4 py-2 text-indigo-600 border border-indigo-600 dark:border-indigo-400 rounded-lg hover:bg-indigo-50 dark:hover:bg-indigo-900 transition-colors"
                                                       >
                                                             <Plus className="h-5 w-5 mr-2" />
                                                             Tambah Material
@@ -604,7 +602,7 @@ const RamanDashboard = () => {
                                                             disabled={materials.every((m, i) =>
                                                                   m.trim() === '' || !batchNumbers[i] || !vatCounts[i] || isNaN(Number(vatCounts[i]))
                                                             ) || !inisial}
-                                                            className="px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors font-medium"
+                                                            className={`px-6 py-3 ${btnPrimary} text-white rounded-lg disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors font-medium`}
                                                       >
                                                             Call Inspector QC
                                                       </button>
@@ -613,13 +611,13 @@ const RamanDashboard = () => {
                                     </div>
                                     <div className="xl:col-span-1">
                                           {requests.length > 0 && (
-                                                <div className="bg-white rounded-xl shadow-sm p-6 h-full">
-                                                      <h3 className="text-lg font-semibold text-gray-900 mb-4">Permintaan Terkirim</h3>
+                                                <div className={`${cardBg} rounded-xl ${cardShadow} p-6 h-full`}>
+                                                      <h3 className={`text-lg font-semibold ${textMain} mb-4`}>Permintaan Terkirim</h3>
                                                       <div className="space-y-3 max-h-96 overflow-y-auto">
                                                             {requests.map((request) => (
                                                                   <div
                                                                         key={request.id}
-                                                                        className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg relative"
+                                                                        className={`p-4 ${bgHighlight} ${borderHighlight} border rounded-lg relative`}
                                                                   >
                                                                         {/* Tombol Delete di pojok kanan atas */}
                                                                         <button
@@ -633,29 +631,29 @@ const RamanDashboard = () => {
                                                                                           }
                                                                                     }
                                                                               }}
-                                                                              className="absolute top-2 right-2 px-3 py-1 rounded bg-red-500 text-white hover:bg-red-600 text-xs"
+                                                                              className={`absolute top-2 right-2 px-3 py-1 rounded ${bgDelete} text-white text-xs`}
                                                                               title="Hapus Permintaan"
                                                                         >
                                                                               Hapus
                                                                         </button>
                                                                         <div className="flex-1">
-                                                                              <p className="font-medium text-gray-900 text-sm">
+                                                                              <p className={`font-medium ${textMain} text-sm`}>
                                                                                     Material: {request.materials.join(', ')}
                                                                               </p>
-                                                                              <p className="text-xs text-gray-600 mt-1">
+                                                                              <p className={`text-xs ${textSecondary} mt-1`}>
                                                                                     Operator: {request.operator}
                                                                               </p>
-                                                                              <p className="text-xs text-gray-600">
+                                                                              <p className={`text-xs ${textSecondary}`}>
                                                                                     Batch: {request.batch_number}
                                                                               </p>
-                                                                              <p className="text-xs text-gray-600">
+                                                                              <p className={`text-xs ${textSecondary}`}>
                                                                                     Jumlah Vat: {request.vatCount}
                                                                               </p>
-                                                                              <p className="text-xs text-gray-600">
+                                                                              <p className={`text-xs ${textSecondary}`}>
                                                                                     Dikirim: {toLocaleID(request.timestamp)}
                                                                               </p>
                                                                         </div>
-                                                                        <span className="px-2 py-1 bg-yellow-100 text-yellow-800 rounded-full text-xs font-medium ml-2 absolute bottom-2 right-2">
+                                                                        <span className={`px-2 py-1 bg-yellow-100 text-yellow-800 rounded-full text-xs font-medium ml-2 absolute bottom-2 right-2 dark:bg-yellow-800 dark:text-yellow-200`}>
                                                                               Menunggu QC
                                                                         </span>
                                                                   </div>
@@ -671,18 +669,18 @@ const RamanDashboard = () => {
       }
 
       return (
-            <div className="min-h-screen bg-gradient-to-br from-purple-50 to-pink-100 p-6 mt-20">
+            <div className={`min-h-screen ${bgMainQC} p-6 mt-20`}>
                   <div className="w-full">
                         {/* Header */}
-                        <div className="bg-white rounded-xl shadow-sm p-6 mb-6">
+                        <div className={`${cardBg} rounded-xl ${cardShadow} p-6 mb-6`}>
                               <div className="flex items-center justify-between">
                                     <div>
-                                          <h1 className="text-3xl font-bold text-gray-900">Dashboard QC Inspector</h1>
-                                          <p className="text-gray-600 mt-1">Monitoring Identifikasi Raman</p>
+                                          <h1 className={`text-3xl font-bold ${textMain}`}>Dashboard QC Inspector</h1>
+                                          <p className={`${textSecondary} mt-1`}>Monitoring Identifikasi Raman</p>
                                     </div>
                                     <button
                                           onClick={() => setPages('warehouse')}
-                                          className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
+                                          className={`px-4 py-2 ${btnPrimaryQC} text-white rounded-lg transition-colors`}
                                     >
                                           Switch to Warehouse View
                                     </button>
@@ -702,10 +700,10 @@ const RamanDashboard = () => {
                         </div>
                         <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
                               {/* Request Raman */}
-                              <div className="bg-white rounded-xl shadow-sm p-6">
+                              <div className={`${cardBg} rounded-xl ${cardShadow} p-6`}>
                                     <div className="flex items-center mb-4">
-                                          <Clock className="h-6 w-6 text-yellow-600 mr-3" />
-                                          <h2 className="text-xl font-semibold text-gray-900">Request Raman</h2>
+                                          <Clock className="h-6 w-6 text-yellow-600 dark:text-yellow-300 mr-3" />
+                                          <h2 className={`text-xl font-semibold ${textMain}`}>Request Raman</h2>
                                     </div>
                                     <div className="space-y-3 max-h-96 overflow-y-auto">
                                           {requests.map((request) => (
@@ -715,21 +713,21 @@ const RamanDashboard = () => {
                                                             setCurrentRequest(request);
                                                             setShowModal(true);
                                                       }}
-                                                      className="p-4 border border-gray-200 rounded-lg hover:bg-yellow-50 cursor-pointer transition-colors"
+                                                      className={`p-4 border ${borderColor} rounded-lg ${tableHover} cursor-pointer transition-colors`}
                                                 >
-                                                      <p className="font-medium text-gray-900 text-sm">
+                                                      <p className={`font-medium ${textMain} text-sm`}>
                                                             {request.materials.join(', ')}
                                                       </p>
                                                       <p className="text-sm text-blue-600 font-medium mt-1">
                                                             Operator: {request.operator}
                                                       </p>
-                                                      <p className="text-xs text-gray-600 mt-1">
+                                                      <p className={`text-xs ${textSecondary} mt-1`}>
                                                             Batch: {request.batch_number}
                                                       </p>
-                                                      <p className="text-xs text-gray-600">
+                                                      <p className={`text-xs ${textSecondary}`}>
                                                             Jumlah Vat: {request.vatCount}
                                                       </p>
-                                                      <p className="text-xs text-gray-600 mt-1">
+                                                      <p className={`text-xs ${textSecondary} mt-1`}>
                                                             {toLocaleID(request.timestamp)}
                                                       </p>
                                                 </div>
@@ -740,16 +738,16 @@ const RamanDashboard = () => {
                                     </div>
                               </div>
                               {/* On Progress */}
-                              <div className="bg-white rounded-xl shadow-sm p-6">
+                              <div className={`${cardBg} rounded-xl ${cardShadow} p-6`}>
                                     <div className="flex items-center mb-4">
-                                          <Eye className="h-6 w-6 text-blue-600 mr-3" />
-                                          <h2 className="text-xl font-semibold text-gray-900">On Progress</h2>
+                                          <Eye className="h-6 w-6 text-blue-600 dark:text-blue-300 mr-3" />
+                                          <h2 className={`text-xl font-semibold ${textMain}`}>On Progress</h2>
                                     </div>
                                     <div className="space-y-4 max-h-96 overflow-y-auto">
                                           {onProgress.map((item) => {
                                                 const usedVats = usedVatsByBatch[`${item.batch_number}__${item.material_id}`] || [];
                                                 return (
-                                                      <div key={item.id} className="p-4 border border-gray-200 rounded-lg relative">
+                                                      <div key={item.id} className={`p-4 border ${borderColor} rounded-lg relative`}>
                                                             {/* Tombol Delete pojok kanan atas */}
                                                             <button
                                                                   onClick={async () => {
@@ -762,28 +760,26 @@ const RamanDashboard = () => {
                                                                               }
                                                                         }
                                                                   }}
-                                                                  className="absolute top-2 right-2 px-3 py-1 rounded bg-red-500 text-white hover:bg-red-600 text-xs"
+                                                                  className={`absolute top-2 right-2 px-3 py-1 rounded ${bgDelete} text-white text-xs`}
                                                                   title="Hapus Request"
                                                             >
                                                                   Delete
                                                             </button>
-                                                            <p className="font-medium text-gray-900 mb-2 text-sm">
+                                                            <p className={`font-medium ${textMain} mb-2 text-sm`}>
                                                                   {item.materials.join(', ')}
                                                             </p>
-                                                            <p className="text-xs text-gray-600 mb-1">
+                                                            <p className={`text-xs ${textSecondary} mb-1`}>
                                                                   Vat: {item.vatCount}
                                                             </p>
                                                             <p className="text-xs text-blue-600 font-medium mb-3">
                                                                   Operator: {item.operator}
                                                             </p>
-                                                            {/* Batch number */}
                                                             <p className="text-xs text-purple-600 font-medium mb-2">
                                                                   Batch: {item.batch_number || '-'}
                                                             </p>
-
                                                             {/* Selected Vats Display */}
                                                             <div className="mb-3">
-                                                                  <p className="text-xs text-gray-600 mb-1">Selected Vats:</p>
+                                                                  <p className={`text-xs ${textSecondary} mb-1`}>Selected Vats:</p>
                                                                   <p className="text-sm font-medium text-green-600">
                                                                         {item.selectedVats && item.selectedVats.length > 0
                                                                               ? item.selectedVats.map(vat => `Vat ${vat}`).join(', ')
@@ -791,15 +787,13 @@ const RamanDashboard = () => {
                                                                         }
                                                                   </p>
                                                             </div>
-
-                                                            {/* Button to open modal */}
                                                             <button
                                                                   onClick={() => setVatModalOpen({
                                                                         isOpen: true,
                                                                         item: item,
                                                                         usedVats: usedVats
                                                                   })}
-                                                                  className="w-full px-4 py-2 mb-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors text-sm border border-gray-300"
+                                                                  className={`w-full px-4 py-2 mb-2 ${btnSecondary} text-gray-700 dark:text-gray-200 rounded-lg transition-colors text-sm border ${borderInput}`}
                                                             >
                                                                   Select Vats ({item.selectedVats?.length || 0}/{item.vatCount})
                                                             </button>
@@ -807,7 +801,7 @@ const RamanDashboard = () => {
                                                             <button
                                                                   onClick={() => submitProgress(item)}
                                                                   disabled={!item.selectedVats || item.selectedVats.length === 0}
-                                                                  className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors text-sm"
+                                                                  className={`w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors text-sm`}
                                                             >
                                                                   Submit
                                                             </button>
@@ -822,26 +816,24 @@ const RamanDashboard = () => {
 
                               {/* Vat Selection Modal */}
                               {vatModalOpen.isOpen && (
-                                    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-                                          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4 max-h-[80vh] overflow-y-auto">
+                                    <div className={`${modalOverlay} fixed inset-0 flex items-center justify-center z-50`}>
+                                          <div className={`${bgModal} rounded-lg p-6 max-w-md w-full mx-4 max-h-[80vh] overflow-y-auto`}>
                                                 <div className="flex justify-between items-center mb-4">
-                                                      <h3 className="text-lg font-semibold text-gray-900">Select Vats</h3>
+                                                      <h3 className={`text-lg font-semibold ${modalText}`}>Select Vats</h3>
                                                       <button
                                                             onClick={() => setVatModalOpen({ isOpen: false, item: null, usedVats: [] })}
-                                                            className="text-gray-500 hover:text-gray-700"
+                                                            className={`${modalText} hover:text-gray-700`}
                                                       >
                                                             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                                                             </svg>
                                                       </button>
                                                 </div>
-
                                                 <div className="mb-4">
-                                                      <p className="text-sm text-gray-600">Material: {vatModalOpen.item?.materials.join(', ')}</p>
-                                                      <p className="text-sm text-gray-600">Batch: {vatModalOpen.item?.batch_number || '-'}</p>
-                                                      <p className="text-sm text-gray-600">Total Vats: {vatModalOpen.item?.vatCount}</p>
+                                                      <p className={`text-sm ${modalText}`}>Material: {vatModalOpen.item?.materials.join(', ')}</p>
+                                                      <p className={`text-sm ${modalText}`}>Batch: {vatModalOpen.item?.batch_number || '-'}</p>
+                                                      <p className={`text-sm ${modalText}`}>Total Vats: {vatModalOpen.item?.vatCount}</p>
                                                 </div>
-
                                                 <div className="grid grid-cols-4 gap-2 mb-4">
                                                       {Array.from({ length: vatModalOpen.item?.vatCount || 0 }, (_, i) => i + 1).map(vatNum => {
                                                             const isUsed = vatModalOpen.usedVats.includes(vatNum);
@@ -853,10 +845,10 @@ const RamanDashboard = () => {
                                                                         disabled={isUsed}
                                                                         className={`p-3 text-sm rounded-lg border-2 transition-all
                                                                                 ${isSelected
-                                                                                    ? 'bg-green-100 border-green-500 text-green-700'
+                                                                                    ? 'bg-green-100 dark:bg-green-900 border-green-500 dark:border-green-400 text-green-700 dark:text-green-200'
                                                                                     : isUsed
-                                                                                          ? 'bg-gray-200 border-gray-400 text-gray-400 cursor-not-allowed'
-                                                                                          : 'bg-gray-50 border-gray-300 text-gray-700 hover:bg-gray-100'
+                                                                                          ? 'bg-gray-200 dark:bg-gray-800 border-gray-400 dark:border-gray-700 text-gray-400 dark:text-gray-500 cursor-not-allowed'
+                                                                                          : 'bg-gray-50 dark:bg-gray-900 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800'
                                                                               }`}
                                                                   >
                                                                         Vat {vatNum}
@@ -864,17 +856,16 @@ const RamanDashboard = () => {
                                                             );
                                                       })}
                                                 </div>
-
                                                 <div className="flex gap-2">
                                                       <button
                                                             onClick={() => setVatModalOpen({ isOpen: false, item: null, usedVats: [] })}
-                                                            className="flex-1 px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors text-sm"
+                                                            className={`flex-1 px-4 py-2 ${btnSecondary} text-gray-700 dark:text-gray-200 rounded-lg transition-colors text-sm`}
                                                       >
                                                             Cancel
                                                       </button>
                                                       <button
                                                             onClick={() => setVatModalOpen({ isOpen: false, item: null, usedVats: [] })}
-                                                            className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
+                                                            className={`flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm`}
                                                       >
                                                             Done
                                                       </button>
@@ -883,14 +874,13 @@ const RamanDashboard = () => {
                                     </div>
                               )}
                               {/* Complete */}
-                              {/* Complete */}
-                              <div className="bg-white rounded-xl shadow-sm p-6 relative">
+                              <div className={`${cardBg} rounded-xl ${cardShadow} p-6 relative`}>
                                     <div className="flex items-center mb-4">
-                                          <CheckCircle className="h-6 w-6 text-green-600 mr-3" />
-                                          <h2 className="text-xl font-semibold text-gray-900">Complete</h2>
+                                          <CheckCircle className="h-6 w-6 text-green-600 dark:text-green-300 mr-3" />
+                                          <h2 className={`text-xl font-semibold ${textMain}`}>Complete</h2>
                                           <button
                                                 onClick={() => setShowFullComplete(true)}
-                                                className="ml-auto px-3 py-1 rounded bg-blue-100 text-blue-700 text-xs"
+                                                className="ml-auto px-3 py-1 rounded bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-200 text-xs"
                                           >
                                                 Full View
                                           </button>
@@ -902,9 +892,9 @@ const RamanDashboard = () => {
                                                       <div
                                                             key={item.id}
                                                             onClick={() => showCompleteDetail(item)}
-                                                            className="p-4 border border-gray-200 rounded-lg hover:bg-green-50 cursor-pointer transition-colors"
+                                                            className={`p-4 border ${borderColor} rounded-lg hover:bg-green-50 dark:hover:bg-green-900 cursor-pointer transition-colors`}
                                                       >
-                                                            <p className="font-medium text-gray-900 text-sm">
+                                                            <p className={`font-medium ${textMain} text-sm`}>
                                                                   {item.materials.join(', ')}
                                                             </p>
                                                             <p className="text-xs text-purple-600 font-medium">
@@ -922,8 +912,8 @@ const RamanDashboard = () => {
                                                             <p
                                                                   className={
                                                                         getTotalIdentifiedForBatch(item.batch_number, item.material_id) === item.vatCount
-                                                                              ? 'text-green-800 bg-green-100 px-2 py-1 rounded text-xs inline-block font-semibold'
-                                                                              : 'text-yellow-800 bg-yellow-100 px-2 py-1 rounded text-xs inline-block font-semibold'
+                                                                              ? 'text-green-800 dark:text-green-200 bg-green-100 dark:bg-green-900 px-2 py-1 rounded text-xs inline-block font-semibold'
+                                                                              : 'text-yellow-800 dark:text-yellow-200 bg-yellow-100 dark:bg-yellow-900 px-2 py-1 rounded text-xs inline-block font-semibold'
                                                                   }
                                                             >
                                                                   Progress: {
@@ -947,41 +937,41 @@ const RamanDashboard = () => {
                         </div>
                         {/* Request Modal for QC */}
                         {showModal && currentRequest && (
-                              <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-                                    <div className="bg-white rounded-xl shadow-xl max-w-md w-full p-6">
-                                          <h3 className="text-xl font-semibold text-gray-900 mb-4">
+                              <div className={`${modalOverlay} fixed inset-0 flex items-center justify-center p-4 z-50`}>
+                                    <div className={`${bgModal} rounded-xl shadow-xl max-w-md w-full p-6`}>
+                                          <h3 className={`text-xl font-semibold ${modalText} mb-4`}>
                                                 Process Request
                                           </h3>
                                           <div className="space-y-4">
                                                 <div>
-                                                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                                                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
                                                             Materials:
                                                       </label>
-                                                      <p className="text-gray-900 bg-gray-50 p-3 rounded-lg">
+                                                      <p className={`${modalText} ${modalInput} p-3 rounded-lg`}>
                                                             {currentRequest?.materials.join(', ')}
                                                       </p>
                                                 </div>
                                                 <div>
-                                                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                                                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
                                                             Operator:
                                                       </label>
-                                                      <p className="text-blue-600 font-medium bg-blue-50 p-3 rounded-lg">
+                                                      <p className="text-blue-600 dark:text-blue-200 font-medium bg-blue-50 dark:bg-blue-900 p-3 rounded-lg">
                                                             {currentRequest?.operator}
                                                       </p>
                                                 </div>
                                                 <div>
-                                                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                                                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
                                                             Batch Number:
                                                       </label>
-                                                      <p className="text-purple-800 font-bold bg-gray-50 p-3 rounded-lg">
+                                                      <p className="text-purple-800 dark:text-purple-200 font-bold bg-gray-50 dark:bg-gray-900 p-3 rounded-lg">
                                                             {currentRequest?.batch_number || '-'}
                                                       </p>
                                                 </div>
                                                 <div>
-                                                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                                                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
                                                             Jumlah Vat:
                                                       </label>
-                                                      <p className="text-gray-900 bg-gray-50 p-3 rounded-lg">
+                                                      <p className={`${modalText} ${modalInput} p-3 rounded-lg`}>
                                                             {currentRequest?.vatCount || '-'}
                                                       </p>
                                                 </div>
@@ -989,13 +979,13 @@ const RamanDashboard = () => {
                                           <div className="flex space-x-3 mt-6">
                                                 <button
                                                       onClick={() => setShowModal(false)}
-                                                      className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+                                                      className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-200 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
                                                 >
                                                       Cancel
                                                 </button>
                                                 <button
                                                       onClick={processRequest}
-                                                      className="flex-1 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
+                                                      className="flex-1 px-4 py-2 bg-purple-600 hover:bg-purple-700 dark:bg-purple-700 dark:hover:bg-purple-800 text-white rounded-lg transition-colors"
                                                 >
                                                       Next
                                                 </button>
@@ -1006,69 +996,69 @@ const RamanDashboard = () => {
 
                         {/* Complete Detail Modal */}
                         {showDetailModal && selectedComplete && (
-                              <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-                                    <div className="bg-white rounded-xl shadow-xl max-w-md w-full p-6">
+                              <div className={`${modalOverlay} fixed inset-0 flex items-center justify-center p-4 z-50`}>
+                                    <div className={`${bgModal} rounded-xl shadow-xl max-w-md w-full p-6`}>
                                           <div className="flex items-center mb-4">
-                                                <FileText className="h-6 w-6 text-green-600 mr-3" />
-                                                <h3 className="text-xl font-semibold text-gray-900">
+                                                <FileText className="h-6 w-6 text-green-600 dark:text-green-200 mr-3" />
+                                                <h3 className={`text-xl font-semibold ${modalText}`}>
                                                       Detail Complete
                                                 </h3>
                                           </div>
                                           <div className="space-y-4">
                                                 <div>
-                                                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                                                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">
                                                             Materials:
                                                       </label>
-                                                      <p className="text-gray-900">{selectedComplete.materials.join(', ')}</p>
+                                                      <p className={modalText}>{selectedComplete.materials.join(', ')}</p>
                                                 </div>
                                                 <div>
-                                                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                                                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">
                                                             Batch Number:
                                                       </label>
-                                                      <p className="text-purple-800 font-bold">{selectedComplete.batch_number || '-'}</p>
+                                                      <p className="text-purple-800 dark:text-purple-200 font-bold">{selectedComplete.batch_number || '-'}</p>
                                                 </div>
                                                 <div>
-                                                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                                                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">
                                                             Vat Teridentifikasi:
                                                       </label>
                                                       <div className="flex items-center space-x-2">
-                                                            <span className="text-lg font-bold text-green-600">
+                                                            <span className="text-lg font-bold text-green-600 dark:text-green-200">
                                                                   {getTotalIdentifiedForBatch(selectedComplete.batch_number, selectedComplete.material_id)}
                                                             </span>
-                                                            <span className="text-gray-500">of</span>
-                                                            <span className="text-lg font-bold text-gray-900">
+                                                            <span className="text-gray-500 dark:text-gray-300">of</span>
+                                                            <span className="text-lg font-bold text-gray-900 dark:text-gray-100">
                                                                   {selectedComplete.vatCount}
                                                             </span>
-                                                            <span className="text-gray-500">vat</span>
+                                                            <span className="text-gray-500 dark:text-gray-300">vat</span>
                                                       </div>
                                                       {selectedComplete.selectedVats && selectedComplete.selectedVats.length > 0 && (
-                                                            <p className="text-sm text-gray-600 mt-1">
+                                                            <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">
                                                                   Vat yang teridentifikasi pada request ini: {selectedComplete.selectedVats.sort((a, b) => a - b).join(', ')}
                                                             </p>
                                                       )}
                                                 </div>
                                                 <div>
-                                                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                                                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">
                                                             Operator Warehouse:
                                                       </label>
-                                                      <p className="text-blue-600 font-medium">{selectedComplete.operator}</p>
+                                                      <p className="text-blue-600 dark:text-blue-200 font-medium">{selectedComplete.operator}</p>
                                                 </div>
                                                 <div className="flex items-center">
-                                                      <User className="h-4 w-4 text-gray-500 mr-2" />
-                                                      <span className="text-sm text-gray-600">
+                                                      <User className="h-4 w-4 text-gray-500 dark:text-gray-300 mr-2" />
+                                                      <span className="text-sm text-gray-600 dark:text-gray-200">
                                                             QC Inspector: {selectedComplete.inspector}
                                                       </span>
                                                 </div>
                                                 <div className="flex items-center">
-                                                      <Calendar className="h-4 w-4 text-gray-500 mr-2" />
-                                                      <span className="text-sm text-gray-600">
+                                                      <Calendar className="h-4 w-4 text-gray-500 dark:text-gray-300 mr-2" />
+                                                      <span className="text-sm text-gray-600 dark:text-gray-200">
                                                             Selesai: {selectedComplete.completedAt ? dayjs(selectedComplete.completedAt).add(7, 'hour').format('DD MMM YYYY HH:mm:ss') : ''}
                                                       </span>
                                                 </div>
                                           </div>
                                           <button
                                                 onClick={() => setShowDetailModal(false)}
-                                                className="w-full mt-6 px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
+                                                className="w-full mt-6 px-4 py-2 bg-gray-600 hover:bg-gray-700 dark:bg-gray-700 dark:hover:bg-gray-900 text-white rounded-lg transition-colors"
                                           >
                                                 Close
                                           </button>
