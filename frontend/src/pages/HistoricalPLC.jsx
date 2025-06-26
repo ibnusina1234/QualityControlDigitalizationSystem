@@ -15,7 +15,7 @@ const roomOptions = [
   'Ruang_Timbang',
 ];
 
-// New: Separate chart for Temperature (with red line at 25°C)
+// Separate chart for Temperature (with red line at 20°C and 28°C)
 const TemperatureChart = ({ temperatureData, timestamps }) => {
   const canvasRef = React.useRef(null);
 
@@ -82,32 +82,32 @@ const TemperatureChart = ({ temperatureData, timestamps }) => {
 
       ctx.stroke();
 
-    if (tempMin < 20) {
-  const y20 = height - 40 - (height - 70) * (20 - tempMin) / (tempMax - tempMin || 1);
-  ctx.strokeStyle = 'red';
-  ctx.setLineDash([5, 5]);
-  ctx.beginPath();
-  ctx.moveTo(50, y20);
-  ctx.lineTo(width - 20, y20);
-  ctx.stroke();
-  ctx.setLineDash([]);
-  ctx.font = 'bold 11px Arial';
-  ctx.fillStyle = 'red';
-  ctx.fillText('20°C', width - 60, y20 - 5);
-}
-if (tempMax > 28) {
-  const y28 = height - 40 - (height - 70) * (28 - tempMin) / (tempMax - tempMin || 1);
-  ctx.strokeStyle = 'red';
-  ctx.setLineDash([5, 5]);
-  ctx.beginPath();
-  ctx.moveTo(50, y28);
-  ctx.lineTo(width - 20, y28);
-  ctx.stroke();
-  ctx.setLineDash([]);
-  ctx.font = 'bold 11px Arial';
-  ctx.fillStyle = 'red';
-  ctx.fillText('28°C', width - 60, y28 - 5);
-}
+      // Always show red dashed line at 20°C and 28°C
+      // 20°C
+      const y20 = height - 40 - (height - 70) * (20 - tempMin) / (tempMax - tempMin || 1);
+      ctx.strokeStyle = 'red';
+      ctx.setLineDash([5, 5]);
+      ctx.beginPath();
+      ctx.moveTo(50, y20);
+      ctx.lineTo(width - 20, y20);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.font = 'bold 11px Arial';
+      ctx.fillStyle = 'red';
+      ctx.fillText('20°C', width - 60, y20 - 5);
+
+      // 28°C
+      const y28 = height - 40 - (height - 70) * (28 - tempMin) / (tempMax - tempMin || 1);
+      ctx.strokeStyle = 'red';
+      ctx.setLineDash([5, 5]);
+      ctx.beginPath();
+      ctx.moveTo(50, y28);
+      ctx.lineTo(width - 20, y28);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.font = 'bold 11px Arial';
+      ctx.fillStyle = 'red';
+      ctx.fillText('28°C', width - 60, y28 - 5);
 
       // Axes
       ctx.strokeStyle = '#888';
@@ -160,7 +160,7 @@ if (tempMax > 28) {
   );
 };
 
-// New: Separate chart for Humidity
+// Separate chart for Humidity
 const HumidityChart = ({ humidityData, timestamps }) => {
   const canvasRef = React.useRef(null);
 
@@ -648,14 +648,14 @@ export default function MonitoringPage() {
                       ) : (
                         data.map((d, idx) => {
                           const temp = (Math.round(d.data_format_0 * 10) / 10).toFixed(1);
-                          const isOver25 = Number(temp) > 25;
+                          const isRed = Number(temp) < 20 || Number(temp) > 28;
                           return (
                             <tr key={idx} className={bgTableRowHover}>
                               <td className="px-3 py-2 text-xs text-gray-600 dark:text-gray-300">
                                 {new Date(d.timestamp < 1e12 ? d.timestamp * 1000 : d.timestamp).toLocaleString()}
                               </td>
                               <td
-                                className={`px-3 py-2 text-xs font-medium ${isOver25 ? 'text-red-600 font-bold' : 'text-gray-700 dark:text-gray-200'}`}
+                                className={`px-3 py-2 text-xs font-medium ${isRed ? 'text-red-600 font-bold' : 'text-gray-700 dark:text-gray-200'}`}
                               >
                                 {temp}°C
                               </td>
