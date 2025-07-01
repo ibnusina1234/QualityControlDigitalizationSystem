@@ -235,7 +235,7 @@ const RamanDashboard = () => {
       };
 
       // Call inspector: kirim batch_number & vat_count hasil dropdown/manual
-      const callInspector = async () => {
+      const createRequest = async () => {
             const requestsToSend = materials
                   .map((m, i) => ({
                         material: m,
@@ -261,7 +261,7 @@ const RamanDashboard = () => {
                   // Kirim Telegram setelah request
                   try {
                         let pesanTelegram = `📦 <b>Request Raman Baru</b>\n`;
-                        pesanTelegram += `Operator: <b>${inisial}</b>\n`;
+                        pesanTelegram += `Created By: <b>${inisial}</b>\n`;
                         requestsToSend.forEach((req, idx) => {
                               pesanTelegram += `\n<b>Material ${idx + 1}:</b> ${req.material}\nBatch: <b>${req.batch_number}</b>\nJumlah Vat: <b>${req.vat_count}</b>\n`;
                         });
@@ -270,7 +270,7 @@ const RamanDashboard = () => {
                         await axios.post(`${API_BASE}/bot/telegram/send`, {
                               message: pesanTelegram
                         });
-                  } catch (err) {}
+                  } catch (err) { }
                   setMaterials(['']);
                   setBatchOptions([[]]);
                   setBatchNumbers(['']);
@@ -285,6 +285,33 @@ const RamanDashboard = () => {
                   }
             }
       };
+
+      const callInspector = async (request) => {
+            if (!request || !request.materials?.length || !request.operator) return;
+
+            try {
+                  let pesanTelegram = `📞 <b>Calling QC Inspector!</b>\n`;
+                  pesanTelegram += `Operator: <b>${request.operator}</b>\n`;
+
+                  request.materials.forEach((material, idx) => {
+                        pesanTelegram += `\n<b>Material ${idx + 1}:</b> ${material}`;
+                  });
+
+                  pesanTelegram += `\nBatch: <b>${request.batch_number}</b>`;
+                  pesanTelegram += `\nJumlah Vat: <b>${request.vatCount}</b>`;
+                  pesanTelegram += `\nWaktu: ${(new Date()).toLocaleString('id-ID')}`;
+
+                  await axios.post(`${API_BASE}/bot/telegram/send`, {
+                        message: pesanTelegram
+                  });
+
+                  alert('Notifikasi berhasil dikirim ke QC Inspector!');
+            } catch (err) {
+                  alert('Gagal mengirim notifikasi ke Telegram');
+            }
+      };
+
+
 
       // Helper: total vat identified for batch
       const getTotalIdentifiedForBatch = (batch_number, material_id) => {
@@ -598,13 +625,13 @@ const RamanDashboard = () => {
                                                             Tambah Material
                                                       </button>
                                                       <button
-                                                            onClick={callInspector}
+                                                            onClick={createRequest}
                                                             disabled={materials.every((m, i) =>
                                                                   m.trim() === '' || !batchNumbers[i] || !vatCounts[i] || isNaN(Number(vatCounts[i]))
                                                             ) || !inisial}
                                                             className={`px-6 py-3 ${btnPrimary} text-white rounded-lg disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors font-medium`}
                                                       >
-                                                            Call Inspector QC
+                                                            Create Request Raman
                                                       </button>
                                                 </div>
                                           </div>
@@ -619,23 +646,33 @@ const RamanDashboard = () => {
                                                                         key={request.id}
                                                                         className={`p-4 ${bgHighlight} ${borderHighlight} border rounded-lg relative`}
                                                                   >
-                                                                        {/* Tombol Delete di pojok kanan atas */}
-                                                                        <button
-                                                                              onClick={async () => {
-                                                                                    if (window.confirm("Hapus permintaan ini?")) {
-                                                                                          try {
-                                                                                                await axios.delete(`${API_BASE}/Raman/request/${request.id}`);
-                                                                                                fetchRequests();
-                                                                                          } catch (err) {
-                                                                                                alert("Gagal menghapus permintaan");
+                                                                        {/* Tombol Call Inspector QC dan Hapus */}
+                                                                        <div className="absolute top-2 right-2 flex gap-2">
+                                                                              <button
+                                                                                    onClick={async () => {
+                                                                                          if (window.confirm("Hapus permintaan ini?")) {
+                                                                                                try {
+                                                                                                      await axios.delete(`${API_BASE}/Raman/request/${request.id}`);
+                                                                                                      fetchRequests();
+                                                                                                } catch (err) {
+                                                                                                      alert("Gagal menghapus permintaan");
+                                                                                                }
                                                                                           }
-                                                                                    }
-                                                                              }}
-                                                                              className={`absolute top-2 right-2 px-3 py-1 rounded ${bgDelete} text-white text-xs`}
-                                                                              title="Hapus Permintaan"
-                                                                        >
-                                                                              Hapus
-                                                                        </button>
+                                                                                    }}
+                                                                                    className={`${bgDelete} text-white text-xs px-3 py-1 rounded`}
+                                                                                    title="Hapus Permintaan"
+                                                                              >
+                                                                                    Hapus
+                                                                              </button>
+
+                                                                              <button
+                                                                                    onClick={() => callInspector(request)}
+                                                                                    className="bg-green-600 hover:bg-green-700 text-white text-xs px-3 py-1 rounded"
+                                                                                    title="Call Inspector QC"
+                                                                              >
+                                                                                    Call Inspector QC
+                                                                              </button>
+                                                                        </div>
                                                                         <div className="flex-1">
                                                                               <p className={`font-medium ${textMain} text-sm`}>
                                                                                     Material: {request.materials.join(', ')}
@@ -653,7 +690,8 @@ const RamanDashboard = () => {
                                                                                     Dikirim: {toLocaleID(request.timestamp)}
                                                                               </p>
                                                                         </div>
-                                                                        <span className={`px-2 py-1 bg-yellow-100 text-yellow-800 rounded-full text-xs font-medium ml-2 absolute bottom-2 right-2 dark:bg-yellow-800 dark:text-yellow-200`}>
+
+                                                                        <span className="px-2 py-1 bg-yellow-100 text-yellow-800 rounded-full text-xs font-medium ml-2 absolute bottom-2 right-2 dark:bg-yellow-800 dark:text-yellow-200">
                                                                               Menunggu QC
                                                                         </span>
                                                                   </div>
@@ -662,6 +700,8 @@ const RamanDashboard = () => {
                                                 </div>
                                           )}
                                     </div>
+
+
                               </div>
                         </div>
                   </div>
@@ -887,7 +927,7 @@ const RamanDashboard = () => {
                                     </div>
                                     <div className="space-y-3 max-h-96 overflow-y-auto">
                                           {[...completed]
-                                                .slice(0,10)
+                                                .slice(0, 10)
                                                 .map((item) => (
                                                       <div
                                                             key={item.id}
