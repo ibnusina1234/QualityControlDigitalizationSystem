@@ -24,6 +24,7 @@ const RamanDashboard = () => {
       const [batchOptions, setBatchOptions] = useState([[]]);
       const [batchNumbers, setBatchNumbers] = useState(['']);
       const [vatCounts, setVatCounts] = useState(['']);
+      const [tanggalTimbang, setTanggalTimbang] = useState(dayjs().format('YYYY-MM-DD'));
       const [requests, setRequests] = useState([]);
       const [onProgress, setOnProgress] = useState([]);
       const [completed, setCompleted] = useState([]);
@@ -592,7 +593,7 @@ const RamanDashboard = () => {
                                                                         <input
                                                                               type="number"
                                                                               min="1"
-                                                                              max="100"
+                                                                              max="200"
                                                                               value={vatCounts[idx]}
                                                                               onChange={e => handleVatCountInput(idx, e.target.value)}
                                                                               placeholder="Jumlah Vat"
@@ -601,6 +602,17 @@ const RamanDashboard = () => {
                                                                                     (batchOptions[idx] || []).some(b => b.batch_number === batchNumbers[idx])
                                                                               }
                                                                         />
+                                                                        <div className="mb-6">
+                                                                              <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
+                                                                                    Tanggal Timbang
+                                                                              </label>
+                                                                              <input
+                                                                                    type="date"
+                                                                                    value={tanggalTimbang}
+                                                                                    onChange={(e) => setTanggalTimbang(e.target.value)}
+                                                                                    className={`w-full px-4 py-3 border ${borderInput} ${inputBg} ${inputText} rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all`}
+                                                                              />
+                                                                        </div>
                                                                         {(!batchOptions[idx] || batchOptions[idx].length === 0) &&
                                                                               <p className="text-xs text-yellow-500 mt-1">Tidak ada batch "Pending" untuk material ini, silakan input manual.</p>
                                                                         }
