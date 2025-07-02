@@ -10,7 +10,11 @@ dayjs.extend(require("dayjs/plugin/timezone"));
 const db1 = require("../database/db");
 
 // CREATE: Warehouse create new request (only material, operator)
-router.post("/request", ramanController.createRamanRequest);
+router.post("/request", (req, res, next) => {
+  console.log("POST /Raman/request", req.body); // <--- log payload dari frontend
+  next(); // lanjutkan ke controller
+}, ramanController.createRamanRequest);
+
 
 // GET: All requests across all batch (global dashboard)
 router.get("/all-requests", async (req, res) => {
