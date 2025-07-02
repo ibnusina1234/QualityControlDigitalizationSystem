@@ -129,8 +129,8 @@ exports.createRamanRequest = async (req, res) => {
     let batch_id;
     if (!batchRows.length) {
       const [result] = await db1.query(
-        `INSERT INTO batches (batch_number, material_id, vat_count) VALUES (?, ?, ?)`,
-        [batch_number, material_id, vat_count]
+        `INSERT INTO batches (batch_number, material_id, vat_count,tanggal_timbang) VALUES (?, ?, ?,?)`,
+        [batch_number, material_id, vat_count,tanggal_timbang]
       );
       batch_id = result.insertId;
     } else {

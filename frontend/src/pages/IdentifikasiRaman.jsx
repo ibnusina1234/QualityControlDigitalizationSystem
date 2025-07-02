@@ -241,7 +241,8 @@ const RamanDashboard = () => {
                   .map((m, i) => ({
                         material: m,
                         batch_number: batchNumbers[i],
-                        vat_count: vatCounts[i]
+                        vat_count: vatCounts[i],
+                        tanggal_timbang: tanggalTimbang[i]
                   }))
                   .filter(x => x.material.trim() && x.batch_number && x.vat_count && !isNaN(Number(x.vat_count)));
 
@@ -255,6 +256,7 @@ const RamanDashboard = () => {
                                     operator_id: idOperator,
                                     batch_number: data.batch_number,
                                     vat_count: Number(data.vat_count),
+                                    tanggal_timbang: data.tanggal_timbang, 
                                     requested_at: new Date(new Date().toISOString())
                               })
                         )
@@ -603,7 +605,7 @@ const RamanDashboard = () => {
                                                                               }
                                                                         />
                                                                         <div className="mb-6">
-                                                                              <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
+                                                                              <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2 py-2">
                                                                                     Tanggal Timbang
                                                                               </label>
                                                                               <input
