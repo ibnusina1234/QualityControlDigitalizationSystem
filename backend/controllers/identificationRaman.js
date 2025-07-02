@@ -106,7 +106,7 @@ exports.getUsedVatsForBatch = async (req, res) => {
 };
 
 exports.createRamanRequest = async (req, res) => {
-  const { material_name, operator_id, batch_number, vat_count, requested_at } =
+  const { material_name, operator_id, batch_number, vat_count,tanggal_timbang, requested_at } =
     req.body;
   try {
     let [material] = await db1.query(
