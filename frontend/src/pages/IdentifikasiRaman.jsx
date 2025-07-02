@@ -24,7 +24,7 @@ const RamanDashboard = () => {
       const [batchOptions, setBatchOptions] = useState([[]]);
       const [batchNumbers, setBatchNumbers] = useState(['']);
       const [vatCounts, setVatCounts] = useState(['']);
-      const [tanggalTimbang, setTanggalTimbang] = useState(dayjs().format('YYYY-MM-DD'));
+      const [tanggalTimbang, setTanggalTimbang] = useState(['']);
       const [requests, setRequests] = useState([]);
       const [onProgress, setOnProgress] = useState([]);
       const [completed, setCompleted] = useState([]);
@@ -136,6 +136,7 @@ const RamanDashboard = () => {
             setBatchOptions([...batchOptions, []]);
             setBatchNumbers([...batchNumbers, '']);
             setVatCounts([...vatCounts, '']);
+            setTanggalTimbang([...tanggalTimbang, '']);
       };
 
       // Remove material input
@@ -145,6 +146,7 @@ const RamanDashboard = () => {
                   setBatchOptions(batchOptions.filter((_, i) => i !== index));
                   setBatchNumbers(batchNumbers.filter((_, i) => i !== index));
                   setVatCounts(vatCounts.filter((_, i) => i !== index));
+                  setTanggalTimbang(tanggalTimbang.filter((_, i) => i !== index));
             }
       };
 
@@ -256,7 +258,7 @@ const RamanDashboard = () => {
                                     operator_id: idOperator,
                                     batch_number: data.batch_number,
                                     vat_count: Number(data.vat_count),
-                                    tanggal_timbang: data.tanggal_timbang, 
+                                    tanggal_timbang: data.tanggal_timbang,
                                     requested_at: new Date(new Date().toISOString())
                               })
                         )
@@ -610,8 +612,12 @@ const RamanDashboard = () => {
                                                                               </label>
                                                                               <input
                                                                                     type="date"
-                                                                                    value={tanggalTimbang}
-                                                                                    onChange={(e) => setTanggalTimbang(e.target.value)}
+                                                                                   value={tanggalTimbang[idx] || ''}
+                                                                                    onChange={(e) => {
+                                                                                          const arr = [...tanggalTimbang];
+                                                                                          arr[idx] = e.target.value;
+                                                                                          setTanggalTimbang(arr);
+                                                                                    }}
                                                                                     className={`w-full px-4 py-3 border ${borderInput} ${inputBg} ${inputText} rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all`}
                                                                               />
                                                                         </div>
