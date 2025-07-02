@@ -695,7 +695,7 @@ const RamanDashboard = () => {
                                                                         </div>
                                                                         <div className="flex-1">
                                                                               <p className={`text-xs ${textSecondary}`}>
-                                                                                    Tanggal Timbang: {request.tanggalTimbang}
+                                                                                    Tanggal Timbang: { toLocaleID(request.tanggalTimbang)}
                                                                               </p>
                                                                               <p className={`font-medium ${textMain} text-sm`}>
                                                                                     Material: {request.materials.join(', ')}
