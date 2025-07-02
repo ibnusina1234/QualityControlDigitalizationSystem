@@ -106,8 +106,14 @@ exports.getUsedVatsForBatch = async (req, res) => {
 };
 
 exports.createRamanRequest = async (req, res) => {
-  const { material_name, operator_id, batch_number, vat_count,tanggal_timbang, requested_at } =
-    req.body;
+  const {
+    material_name,
+    operator_id,
+    batch_number,
+    vat_count,
+    tanggal_timbang,
+    requested_at,
+  } = req.body;
   try {
     let [material] = await db1.query(
       `SELECT id FROM materialraman WHERE name = ?`,
@@ -130,7 +136,7 @@ exports.createRamanRequest = async (req, res) => {
     if (!batchRows.length) {
       const [result] = await db1.query(
         `INSERT INTO batches (batch_number, material_id, vat_count,tanggal_timbang) VALUES (?, ?, ?,?)`,
-        [batch_number, material_id, vat_count,tanggal_timbang]
+        [batch_number, material_id, vat_count, tanggal_timbang]
       );
       batch_id = result.insertId;
     } else {
@@ -140,6 +146,11 @@ exports.createRamanRequest = async (req, res) => {
           message: `Batch sudah ada (${batch_number}) untuk material tersebut dengan jumlah vat ${batchRows[0].vat_count}. Tidak bisa input jumlah vat berbeda!`,
         });
       }
+      // Update tanggal_timbang jika ingin selalu mengupdate field-nya:
+      await db1.query(`UPDATE batches SET tanggal_timbang = ? WHERE id = ?`, [
+        tanggal_timbang,
+        batch_id,
+      ]);
     }
 
     // Simpan waktu dalam UTC
