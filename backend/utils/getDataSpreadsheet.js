@@ -1,21 +1,22 @@
-const { google } = require('googleapis');
-const fs = require('fs');
-const path = require('path');
+const { google } = require("googleapis");
+const fs = require("fs");
+const path = require("path");
 
-const credentials = JSON.parse(fs.readFileSync(path.join(__dirname, '../credentials.json'), 'utf8'));
-const spreadsheetId = '1h51Y-3EWTHWDicrE1dqqJe2N296tUw8K2YGJGJbnyGY'; // Ganti dengan ID spreadsheet kamu
+// Pastikan kamu sudah mengatur Google Sheets API dan memiliki credential
+const spreadsheetId = "1h51Y-3EWTHWDicrE1dqqJe2N296tUw8K2YGJGJbnyGY"; // Ganti dengan ID spreadsheet kamu
 
 async function getBatchListFromSheet(materialName) {
   const auth = new google.auth.GoogleAuth({
-    credentials,
-    scopes: ['https://www.googleapis.com/auth/spreadsheets.readonly'],
+    keyFile: path.resolve(__dirname, "../", "../", "key", "credentials.json"),
+    scopes: ["https://www.googleapis.com/auth/spreadsheets.readonly"],
   });
-  const sheets = google.sheets({ version: 'v4', auth });
+  const sheets = google.sheets({ version: "v4", auth });
   // Ambil data baris 1-2000 kolom G, I, L, R
   const response = await sheets.spreadsheets.values.get({
     spreadsheetId,
-    range: 'Sheet1!G2:R', // 
+    range: "Sheet1!G2:R", //
   });
+  // Pastikan kamu sudah mengatur nama sheet dan range yang sesuai
   const rows = response.data.values || [];
 
   // Index relatif (0-based): G=0, I=2, L=5, R=11 dalam range G sampai R
@@ -24,17 +25,18 @@ async function getBatchListFromSheet(materialName) {
 
   // Filter dan mapping
   return rows
-    .filter(row =>
-      row[0] && // material name
-      row[11] && // Raman
-      row[2] && // No. Batch
-      row[5] && // Jumlah Vat
-      row[0].toLowerCase().includes(materialName.toLowerCase()) && // <-- partial match
-      row[11].trim() === 'Pending'
+    .filter(
+      (row) =>
+        row[0] && // material name
+        row[11] && // Raman
+        row[2] && // No. Batch
+        row[5] && // Jumlah Vat
+        row[0].toLowerCase().includes(materialName.toLowerCase()) && // <-- partial match
+        row[11].trim() === "Pending"
     )
-    .map(row => ({
+    .map((row) => ({
       batch_number: row[2],
-      vat_count: Number(row[5])
+      vat_count: Number(row[5]),
     }));
 }
 
