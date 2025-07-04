@@ -258,7 +258,6 @@ const RamanDashboard = () => {
                                     operator_id: idOperator,
                                     batch_number: data.batch_number,
                                     vat_count: Number(data.vat_count),
-                                    tanggal_timbang: data.tanggal_timbang,
                                     requested_at: new Date(new Date().toISOString())
                               })
                         )
@@ -288,31 +287,6 @@ const RamanDashboard = () => {
                   } else {
                         alert('Gagal mengirim request');
                   }
-            }
-      };
-
-      const callInspector = async (request) => {
-            if (!request || !request.materials?.length || !request.operator) return;
-
-            try {
-                  let pesanTelegram = `📞 <b>Calling QC Inspector!</b>\n`;
-                  pesanTelegram += `Operator: <b>${request.operator}</b>\n`;
-
-                  request.materials.forEach((material, idx) => {
-                        pesanTelegram += `\n<b>Material ${idx + 1}:</b> ${material}`;
-                  });
-
-                  pesanTelegram += `\nBatch: <b>${request.batch_number}</b>`;
-                  pesanTelegram += `\nJumlah Vat: <b>${request.vatCount}</b>`;
-                  pesanTelegram += `\nWaktu: ${(new Date()).toLocaleString('id-ID')}`;
-
-                  await axios.post(`${API_BASE}/bot/telegram/send`, {
-                        message: pesanTelegram
-                  });
-
-                  alert('Notifikasi berhasil dikirim ke QC Inspector!');
-            } catch (err) {
-                  alert('Gagal mengirim notifikasi ke Telegram');
             }
       };
 
@@ -606,21 +580,6 @@ const RamanDashboard = () => {
                                                                                     (batchOptions[idx] || []).some(b => b.batch_number === batchNumbers[idx])
                                                                               }
                                                                         />
-                                                                        <div className="mb-6">
-                                                                              <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2 py-2">
-                                                                                    Tanggal Timbang
-                                                                              </label>
-                                                                              <input
-                                                                                    type="date"
-                                                                                   value={tanggalTimbang[idx] || ''}
-                                                                                    onChange={(e) => {
-                                                                                          const arr = [...tanggalTimbang];
-                                                                                          arr[idx] = e.target.value;
-                                                                                          setTanggalTimbang(arr);
-                                                                                    }}
-                                                                                    className={`w-full px-4 py-3 border ${borderInput} ${inputBg} ${inputText} rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all`}
-                                                                              />
-                                                                        </div>
                                                                         {(!batchOptions[idx] || batchOptions[idx].length === 0) &&
                                                                               <p className="text-xs text-yellow-500 mt-1">Tidak ada batch "Pending" untuk material ini, silakan input manual.</p>
                                                                         }
@@ -651,7 +610,7 @@ const RamanDashboard = () => {
                                                             ) || !inisial}
                                                             className={`px-6 py-3 ${btnPrimary} text-white rounded-lg disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors font-medium`}
                                                       >
-                                                            Create Request Raman
+                                                            Call Inspektor QC
                                                       </button>
                                                 </div>
                                           </div>
@@ -683,14 +642,6 @@ const RamanDashboard = () => {
                                                                                     title="Hapus Permintaan"
                                                                               >
                                                                                     Hapus
-                                                                              </button>
-
-                                                                              <button
-                                                                                    onClick={() => callInspector(request)}
-                                                                                    className="bg-green-600 hover:bg-green-700 text-white text-xs px-3 py-1 rounded"
-                                                                                    title="Call Inspector QC"
-                                                                              >
-                                                                                    Call Inspector QC
                                                                               </button>
                                                                         </div>
                                                                         <div className="flex-1">
