@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Box, FormControl, FormLabel, Input, Button, Heading, Alert, AlertIcon } from "@chakra-ui/react";
@@ -14,6 +14,7 @@ function ResetPassword() {
     const [confirmPassword, setConfirmPassword] = useState('');
     const [message, setMessage] = useState('');
     const [error, setError] = useState('');
+    const [cooldownTime, setCooldownTime] = useState(0);
 
     const handleSubmit = (e) => {
         e.preventDefault();
@@ -25,10 +26,15 @@ function ResetPassword() {
         const email = query.get('email');
         const token = query.get('token');
 
-        axios.post( `${process.env.REACT_APP_API_BASE_URL}/users/reset-password`, { email, token, newPassword: password })
+        axios.post(`${process.env.REACT_APP_API_BASE_URL}/users/reset-password`, {
+            email,
+            token,
+            newPassword: password
+        })
             .then(response => {
                 setMessage(response.data.message);
                 setError('');
+                setCooldownTime(60); // Mulai cooldown selama 60 detik
                 setTimeout(() => {
                     navigate('/login');
                 }, 3000);
@@ -36,21 +42,31 @@ function ResetPassword() {
             .catch(error => {
                 setError(error.response?.data?.error || 'Error resetting password');
                 setMessage('');
+                setCooldownTime(60); // Tetap aktifkan cooldown meskipun error
             });
     };
+
+    useEffect(() => {
+        if (cooldownTime > 0) {
+            const interval = setInterval(() => {
+                setCooldownTime(prev => prev - 1);
+            }, 1000);
+            return () => clearInterval(interval);
+        }
+    }, [cooldownTime]);
 
     return (
         <Box className="flex items-center justify-center min-h-screen" pt={20}>
             <Box p={8} maxWidth="400px" width="100%" bg="white" borderRadius="lg" boxShadow="lg">
                 <Heading mb={6} textAlign="center" color="teal.600">Reset Password</Heading>
                 {message && (
-                    <Alert status="success">
+                    <Alert status="success" mb={4}>
                         <AlertIcon />
                         {message}
                     </Alert>
                 )}
                 {error && (
-                    <Alert status="error">
+                    <Alert status="error" mb={4}>
                         <AlertIcon />
                         {error}
                     </Alert>
@@ -63,6 +79,7 @@ function ResetPassword() {
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
                             required
+                            disabled={cooldownTime > 0}
                         />
                     </FormControl>
                     <FormControl mt={4}>
@@ -72,10 +89,17 @@ function ResetPassword() {
                             value={confirmPassword}
                             onChange={(e) => setConfirmPassword(e.target.value)}
                             required
+                            disabled={cooldownTime > 0}
                         />
                     </FormControl>
-                    <Button type="submit" colorScheme="teal" width="full" mt={4}>
-                        Submit
+                    <Button
+                        type="submit"
+                        colorScheme="teal"
+                        width="full"
+                        mt={4}
+                        isDisabled={cooldownTime > 0}
+                    >
+                        {cooldownTime > 0 ? `Please wait ${cooldownTime}s` : 'Submit'}
                     </Button>
                 </form>
             </Box>

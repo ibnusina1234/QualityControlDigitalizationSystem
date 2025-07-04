@@ -17,6 +17,7 @@ const { sendStatusEmail } = require("../utils/sendEmailToUser");
 const {
   dynamicRateLimiter,
   loginRateLimiter,
+   resetPasswordLimiter ,
 } = require("../middleware/rateLimit");
 const validate = require("../middleware/userValidation");
 const sanitizeInput = require("../middleware/validateInput");
@@ -164,7 +165,7 @@ router.put(
 // 🔹 Permintaan reset password
 router.post(
   "/request-password-reset",
-  dynamicRateLimiter,
+   resetPasswordLimiter,
   userController.requestPasswordReset
 );
 

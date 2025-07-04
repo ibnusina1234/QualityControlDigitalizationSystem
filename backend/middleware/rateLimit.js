@@ -14,6 +14,16 @@ const loginRateLimiter = rateLimit({
   legacyHeaders: false,
 });
 
+const resetPasswordLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 1 jam
+  max: 5, // Maks 5 permintaan per jam per IP/email
+  message:
+    'Terlalu banyak permintaan reset password. Silakan coba lagi setelah 15 menit.',
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+
 
 const dynamicRateLimiter = rateLimit({
   windowMs: 10 * 60 * 1000,
@@ -46,4 +56,5 @@ const dynamicRateLimiter = rateLimit({
 module.exports = {
   loginRateLimiter,
   dynamicRateLimiter,
+   resetPasswordLimiter ,
 };
