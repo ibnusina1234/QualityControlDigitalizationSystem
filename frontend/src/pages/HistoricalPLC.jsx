@@ -9,7 +9,7 @@ const roomOptions = [
   'Ruang_Instrument',
   'Ruang_Preparasi',
   'Ruang_Reagen_1',
-  'Ruang_Reagen_2',
+  'Ruang_Reagen_02',
   'Ruang_Reagen_3',
   'Ruang_Retained',
   'Ruang_Timbang',
