@@ -3,20 +3,22 @@ const db = require("../database/db"); // menggunakan pool dari mysql2/promise
 const logger = require("../utils/logger");
 
 const allowedRooms = [
-  'Ruang_ICP',
-  'Ruang_Instrument',
-  'Ruang_Preparasi',
-  'Ruang_Reagen_1',
-  'Ruang_Reagen_2',
-  'Ruang_Reagen_3',
-  'Ruang_Retained',
-  'Ruang_Timbang',
+  "Ruang_ICP",
+  "Ruang_Instrument",
+  "Ruang_Preparasi",
+  "Ruang_Reagen_1",
+  "Ruang_Reagen_02",
+  "Ruang_Reagen_3",
+  "Ruang_Retained",
+  "Ruang_Timbang",
 ];
 
 exports.dataMonitoringQc = async (req, res) => {
   const { room, start, end } = req.query;
 
-  logger.info(`Request received for room: ${room}, start: ${start}, end: ${end}`);
+  logger.info(
+    `Request received for room: ${room}, start: ${start}, end: ${end}`
+  );
 
   if (!room || !start || !end) {
     logger.error("Missing parameters in request");
@@ -44,7 +46,9 @@ exports.dataMonitoringQc = async (req, res) => {
     ORDER BY \`time@timestamp\` ASC
   `;
 
-  logger.info(`Executing query: ${query} with parameters: ${startNum}, ${endNum}`);
+  logger.info(
+    `Executing query: ${query} with parameters: ${startNum}, ${endNum}`
+  );
 
   try {
     const [rows] = await db.query(query, [startNum, endNum]);
