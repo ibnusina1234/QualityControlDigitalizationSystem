@@ -417,8 +417,8 @@ function Navbar({ handleLogout }) {
                                     </Menu>
                                     {isLoggedIn && (
                                           <>
-                                                {/* <Menu> */}
-                                                      <Tooltip label="Dashboard" placement="bottom">
+                                                <Menu>
+                                                      {/* <Tooltip label="Dashboard" placement="bottom">
                                                             <MenuButton
                                                                   as={Button}
                                                                   variant="ghost"
@@ -429,7 +429,7 @@ function Navbar({ handleLogout }) {
                                                             >
                                                                   Document
                                                             </MenuButton>
-                                                      </Tooltip>
+                                                      </Tooltip> */}
                                                       <MenuList shadow="lg" p={1}>
                                                             {/* Submenu trigger with hover */}
                                                             <Box
@@ -545,7 +545,7 @@ function Navbar({ handleLogout }) {
                                                                   </Collapse>
                                                             </Box>
                                                       </MenuList>
-                                                {/* </Menu> */}
+                                                </Menu> 
 
                                           </>
                                     )}
