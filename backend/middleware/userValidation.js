@@ -3,7 +3,9 @@ const Joi = require("joi");
 
 const validate = (schema) => (req, res, next) => {
   if (!schema || typeof schema.validate !== "function") {
-    return res.status(500).json({ error: "Schema Joi tidak valid atau undefined." });
+    return res
+      .status(500)
+      .json({ error: "Schema Joi tidak valid atau undefined." });
   }
 
   const data = {

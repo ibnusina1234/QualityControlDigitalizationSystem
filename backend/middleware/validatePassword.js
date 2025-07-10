@@ -1,16 +1,26 @@
 const validatePassword = (req, res, next) => {
-      const { password } = req.body;
+  const { password } = req.body;
 
-      const capitalLetterRegex = /^[A-Z]/;
-      const numberRegex = /[0-9]/;
+  // Cek minimal 6 karakter
+  if (!password || password.length < 6) {
+    return res.status(400).json({
+      error: 'Password must be at least 6 characters long.',
+    });
+  }
 
-      if (!capitalLetterRegex.test(password) || !numberRegex.test(password)) {
-            return res.status(400).json({
-                  error: 'Password must start with a capital letter and contain at least one number.',
-            });
-      }
+  // Regex untuk masing-masing kriteria
+  const hasUppercase = /[A-Z]/.test(password);
+  const hasLowercase = /[a-z]/.test(password);
+  const hasNumber = /[0-9]/.test(password);
+  const hasSymbol = /[^A-Za-z0-9]/.test(password); // simbol: karakter non-alphanumeric
 
-      next();
+  if (!hasUppercase || !hasLowercase || !hasNumber || !hasSymbol) {
+    return res.status(400).json({
+      error: 'Password must include uppercase, lowercase, number, and symbol.',
+    });
+  }
+
+  next();
 };
 
 module.exports = validatePassword;

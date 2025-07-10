@@ -3,11 +3,11 @@ const rateLimit = require('express-rate-limit');
 const jwt = require('jsonwebtoken');
 
 const loginRateLimiter = rateLimit({
-  windowMs: 5 * 60 * 1000, // 5 menit
-  max: 5,
+  windowMs: 15 * 60 * 1000, // 5 menit
+  max: 6,
   handler: (req, res, next, options) => {
     return res.status(429).json({
-      error: 'Terlalu banyak percobaan login. Silakan coba lagi setelah 5 menit.',
+      error: 'Terlalu banyak percobaan login. Silakan coba lagi setelah 15 menit.',
     });
   },
   standardHeaders: true,
@@ -16,7 +16,7 @@ const loginRateLimiter = rateLimit({
 
 const resetPasswordLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 1 jam
-  max: 5, // Maks 5 permintaan per jam per IP/email
+  max: 6, // Maks 5 permintaan per jam per IP/email
   message:
     'Terlalu banyak permintaan reset password. Silakan coba lagi setelah 15 menit.',
   standardHeaders: true,

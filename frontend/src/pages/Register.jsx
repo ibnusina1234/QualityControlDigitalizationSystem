@@ -66,7 +66,14 @@ const Register = () => {
       const validatePassword = (password) => {
             const capitalLetterRegex = /^[A-Z]/;
             const numberRegex = /[0-9]/;
-            return capitalLetterRegex.test(password) && numberRegex.test(password);
+            const lowercaseRegex = /[a-z]/;
+            const symbolRegex = /[^A-Za-z0-9]/;
+            return (
+                  capitalLetterRegex.test(password) &&
+                  numberRegex.test(password) &&
+                  lowercaseRegex.test(password) &&
+                  symbolRegex.test(password)
+            );
       };
 
       // Daftar jabatan berdasarkan departemen
@@ -103,7 +110,7 @@ const Register = () => {
             }
 
             if (!validatePassword(password)) {
-                  setError("Password harus diawali huruf besar dan mengandung angka.");
+                  setError("Password minimal 6 character diawali huruf besar dan mengandung huruf kecil, angka, dan simbol.");
                   setIsSubmitting(false);
                   return;
             }
