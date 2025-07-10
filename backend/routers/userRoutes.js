@@ -165,14 +165,14 @@ router.put(
 // 🔹 Permintaan reset password
 router.post(
   "/request-password-reset",
-   resetPasswordLimiter,
+   resetPasswordLimiter,sanitizeInput,
   userController.requestPasswordReset
 );
 
 // 🔹 Reset password
 router.post(
   "/reset-password",
-  dynamicRateLimiter,
+  dynamicRateLimiter,validatePassword,
   sanitizeInput,
   userController.resetPassword
 );

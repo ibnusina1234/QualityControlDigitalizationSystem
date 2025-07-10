@@ -597,6 +597,15 @@ exports.resetPassword = async (req, res) => {
       return res.status(400).json({ error: "Invalid or expired token" });
 
     const user = results[0];
+
+    // ⛔️ Cek apakah newPassword sama dengan password lama
+    const isSamePassword = await bcrypt.compare(newPassword, user.password);
+    if (isSamePassword) {
+      return res.status(400).json({
+        error: "New password cannot be the same as the current password.",
+      });
+    }
+
     const hashedPassword = await bcrypt.hash(newPassword, saltRounds);
 
     await db1.query(
@@ -619,6 +628,7 @@ exports.resetPassword = async (req, res) => {
     res.status(500).json({ error: "Internal server error" });
   }
 };
+
 
 // Get Application Data
 exports.getData = async (req, res) => {
