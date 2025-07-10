@@ -26,15 +26,15 @@ const adminMenus = [
      roleRequired: ["admin", "super admin"],
      jabatanRequired : ["ADMIN QC"]
   },
-  {
-    title: "Notifikasi",
-    description: "Kelola notifikasi dan email masuk.",
-    icon: <Bell className="h-8 w-8 text-red-500" />,
-    path: "/admin/notifications",
-    // Tidak ada roleRequired berarti semua admin/super admin bisa lihat
-  },
+//   {
+//     title: "Notifikasi",
+//     description: "Kelola notifikasi dan email masuk.",
+//     icon: <Bell className="h-8 w-8 text-red-500" />,
+//     path: "/admin/notifications",
+//     // Tidak ada roleRequired berarti semua admin/super admin bisa lihat
+//   },
     {
-    title: "EditPage Content",
+    title: "Edit Page Content",
     description: "Ubah konten di Home.",
     icon: <Settings className="h-8 w-8 text-yellow-500" />,
     path: "/EditHome",
