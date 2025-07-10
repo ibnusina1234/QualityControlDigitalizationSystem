@@ -34,8 +34,8 @@ const adminMenus = [
     // Tidak ada roleRequired berarti semua admin/super admin bisa lihat
   },
     {
-    title: "Edit Profil",
-    description: "Ubah data diri.",
+    title: "EditPage Content",
+    description: "Ubah konten di Home.",
     icon: <Settings className="h-8 w-8 text-yellow-500" />,
     path: "/EditHome",
   },
