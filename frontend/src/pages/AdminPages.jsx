@@ -33,12 +33,12 @@ const adminMenus = [
 //     path: "/admin/notifications",
 //     // Tidak ada roleRequired berarti semua admin/super admin bisa lihat
 //   },
-    {
-    title: "Edit Page Content",
-    description: "Ubah konten di Home.",
-    icon: <Settings className="h-8 w-8 text-yellow-500" />,
-    path: "/EditHome",
-  },
+//     {
+//     title: "Edit Page Content",
+//     description: "Ubah konten di Home.",
+//     icon: <Settings className="h-8 w-8 text-yellow-500" />,
+//     path: "/EditHome",
+//   },
 ];
 
 export default function AdminPages() {
