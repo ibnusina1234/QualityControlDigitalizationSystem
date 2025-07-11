@@ -15,14 +15,14 @@ const API_BASE = process.env.REACT_APP_API_BASE_URL
 const RamanDashboard = () => {
       const userRedux = useSelector((state) => state.user.user);
       const inisial = userRedux?.inisial;
-      const emailForRequestRaman = (userRedux?.userrole === "admin", userRedux?.jabatan === "SUPERVISOR WH" ||userRedux?.jabatan === "INSPEKTOR QC");
+      const emailForRequestRaman = (userRedux?.userrole === "admin", userRedux?.jabatan === "SUPERVISOR WH" || userRedux?.jabatan === "INSPEKTOR QC");
       const idOperator = userRedux?.id;
       const idInspektor = userRedux?.id;
       const isAdminAndInspektor = (
-  userRedux?.userrole === "admin" ||
-  userRedux?.userrole === "super admin" ||
-  userRedux?.jabatan === "INSPEKTOR QC"
-);
+            userRedux?.userrole === "admin" ||
+            userRedux?.userrole === "super admin" ||
+            userRedux?.jabatan === "INSPEKTOR QC"
+      );
 
 
 
@@ -246,7 +246,7 @@ const RamanDashboard = () => {
       };
 
       // Call inspector: kirim batch_number & vat_count hasil dropdown/manual
-    const createRequest = async () => {
+      const createRequest = async () => {
             const requestsToSend = materials
                   .map((m, i) => ({
                         material: m,
@@ -365,23 +365,26 @@ const RamanDashboard = () => {
       }, [onProgress, completed, fetchUsedVats]);
 
       // QC: Process request to on progress (assign inspector only)
-         const processRequest = async () => {
+      const processRequest = async () => {
             if (!currentRequest || !idInspektor) return;
 
             try {
                   const body = {
                         inspector_id: idInspektor,
-                        processed_at: new Date(new Date().toISOString())
+                        processed_at: new Date().toISOString()
                   };
 
+                  // ✅ Update status progress ke API utama
                   await axios.patch(`${API_BASE}/Raman/request/${currentRequest.id}/progress`, body);
-                  axios.post('http://10.126.7.220:5005/next-clicked')
-                        .then(response => {
-                              console.log('✅ Next clicked:', response.data);
-                        })
-                        .catch(error => {
-                              console.error('❌ Error:', error);
-                        });
+
+                  // ✅ Stop alarm berdasarkan batch_number
+                  await axios.post('http://10.126.7.220:5005/next-clicked', {
+                        batch_number: currentRequest.batch_number
+                  }, {
+                        headers: {
+                              "Content-Type": "application/json"
+                        }
+                  });
 
                   // Kirim notifikasi Telegram
                   const datetime = new Date().toLocaleString("id-ID", {
@@ -1042,7 +1045,7 @@ const RamanDashboard = () => {
                                     </div>
                               </div>
                         )}
-                        
+
 
                         {/* Complete Detail Modal */}
                         {isAdminAndInspektor && showDetailModal && selectedComplete && (
