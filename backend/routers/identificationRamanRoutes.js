@@ -107,6 +107,9 @@ router.get("/batch-exist", async (req, res) => {
 // GET: All requests for a specific batch
 router.get("/batch/:batch_number", ramanController.getRequestsByBatch);
 
+// GET : Raman Data
+router.get("/getDashboardData",ramanController.getRamanMonitoringData);
+
 // DELETE: Hapus request raman (by id)
 router.delete("/request/:request_id", ramanController.deleteRequest);
 
