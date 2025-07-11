@@ -302,7 +302,7 @@ exports.editRequestWithReason = async (req, res) => {
 exports.getRamanMonitoringData = async (req, res) => {
   try {
     // Ambil data utama dari raman_requests
-    const [requests] = await db.query(`
+    const [requests] = await db1.query(`
       SELECT 
         rr.id AS request_id,
         rr.status,
@@ -324,7 +324,7 @@ exports.getRamanMonitoringData = async (req, res) => {
     `);
 
     // Ambil data identifikasi (vat), tapi include batch_number
-    const [vats] = await db.query(`
+    const [vats] = await db1.query(`
       SELECT 
         rv.id,
         rv.vat_number,
