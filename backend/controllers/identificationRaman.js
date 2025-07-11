@@ -298,3 +298,76 @@ exports.editRequestWithReason = async (req, res) => {
     res.status(500).json({ message: err.message });
   }
 };
+
+exports.getRamanMonitoringData = async (req, res) => {
+  try {
+    // Ambil data utama dari raman_requests
+    const [requests] = await db.query(`
+      SELECT 
+        rr.id AS request_id,
+        rr.status,
+        rr.requested_at,
+        rr.completed_at,
+        rr.processed_at,
+        b.id AS batch_id,
+        b.batch_number,
+        b.vat_count AS total_vats,
+        b.created_at,
+        m.name AS material,
+        u_operator.nama_lengkap AS operator_name,
+        u_inspector.nama_lengkap AS inspector_name
+      FROM raman_requests rr
+      JOIN batches b ON rr.batch_id = b.id
+      JOIN materialraman m ON b.material_id = m.id
+      LEFT JOIN user u_operator ON rr.operator_id = u_operator.id
+      LEFT JOIN user u_inspector ON rr.inspector_id = u_inspector.id
+    `);
+
+    // Ambil data identifikasi (vat), tapi include batch_number
+    const [vats] = await db.query(`
+      SELECT 
+        rv.id,
+        rv.vat_number,
+        rv.identified_at,
+        b.batch_number,
+        u.nama_lengkap AS inspector
+      FROM request_vats rv
+      LEFT JOIN raman_requests rr ON rv.request_id = rr.id
+      LEFT JOIN batches b ON rr.batch_id = b.id
+      LEFT JOIN user u ON rr.inspector_id = u.id
+    `);
+
+    // Kelompokkan vat berdasarkan batch_number
+    const vatMap = {};
+    for (const v of vats) {
+      if (!vatMap[v.batch_number]) vatMap[v.batch_number] = [];
+      vatMap[v.batch_number].push({
+        id: v.id,
+        vat_number: v.vat_number,
+        inspector: v.inspector || "Unknown",
+        identified_at: v.identified_at,
+      });
+    }
+
+    // Susun response akhir berdasarkan batch_number
+    const result = requests.map((req) => {
+      const identifications = vatMap[req.batch_number] || [];
+      return {
+        id: req.request_id,
+        material: req.material,
+        batch_number: req.batch_number,
+        total_vats: req.total_vats,
+        identified_vats: identifications.length,
+        status: req.status,
+        created_at: req.created_at,
+        completed_at: req.completed_at,
+        identifications,
+      };
+    });
+
+    res.json(result);
+  } catch (error) {
+    console.error("Error in getRamanMonitoringData:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+};

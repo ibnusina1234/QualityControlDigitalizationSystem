@@ -33,6 +33,7 @@ import SamplingHistoryForm from "./pages/SamplingHistroyForm";
 import GalleryPDFFormat from "./components/FormatPdfForGalerry";
 import QCTeamEditor from "./components/EditHomePages";
 import RamanDashboard from "./pages/IdentifikasiRaman";
+import RamanMonitoringDashboard from "./pages/DashboardRaman";
 
 const config = {
   initialColorMode: "light",
@@ -152,6 +153,14 @@ function App() {
           element={
             <AuthLoader>
                 <RamanDashboard />{" "}
+            </AuthLoader>
+          }
+        />
+         <Route
+          path="/DashboardRamanView"
+          element={
+            <AuthLoader>
+                <RamanMonitoringDashboard />{" "}
             </AuthLoader>
           }
         />

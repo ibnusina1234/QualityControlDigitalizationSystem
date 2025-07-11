@@ -102,13 +102,23 @@ const Dashboard = () => {
 
       const sendAlertToBackend = async ({ room, temperature, time }) => {
             try {
+                  // 🔁 Kirim ke backend utama
                   await fetch("http://10.126.15.141:8081/users/alert", {
                         method: "POST",
                         headers: { "Content-Type": "application/json" },
                         body: JSON.stringify({ room, temperature, time }),
                   });
+
+                  // 🔔 Kirim juga ke Python TTS alarm speaker
+                  await fetch("http://10.126.7.220:5005/alert", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ room, temperature, time }),
+                  });
+
+                  console.log("✅ Alert dikirim ke kedua server");
             } catch (error) {
-                  console.error("Failed to send alert", error);
+                  console.error("❌ Gagal mengirim alert:", error);
             }
       };
 
@@ -338,87 +348,87 @@ const Dashboard = () => {
       });
 
       // Opsi Temperature Chart (tambahkan annotation garis merah di 20 dan 28 °C)
-     const tempChartOptions = {
-  ...commonOptions,
-  scales: {
-    ...commonOptions.scales,
-    y: {
-      min: 20,
-      max: 28,
-      ticks: {
-        stepSize: 1,
-        callback: function (value) { return value + '°C'; },
-        color: useColorModeValue("#666", "#ccc"),
-        font: { size: 10 }
-      },
-      grid: { color: useColorModeValue("#f0f0f0", "#333") },
-      border: { display: true },
-    },
-  },
-  plugins: {
-    ...commonOptions.plugins,
-    annotation: {
-      annotations: {
-        limitAtas: {
-          type: 'line',
-          yMin: 28,
-          yMax: 28,
-          borderColor: 'red',
-          borderWidth: 2,
-          borderDash: [6, 4],
-          label: {
-            content: 'Limit Atas (28°C)',
-            enabled: true,
-            position: "start",
-            color: 'red',
-            backgroundColor: 'white',
-            font: {
-              weight: 'bold',
-              size: 10
+      const tempChartOptions = {
+            ...commonOptions,
+            scales: {
+                  ...commonOptions.scales,
+                  y: {
+                        min: 20,
+                        max: 28,
+                        ticks: {
+                              stepSize: 1,
+                              callback: function (value) { return value + '°C'; },
+                              color: useColorModeValue("#666", "#ccc"),
+                              font: { size: 10 }
+                        },
+                        grid: { color: useColorModeValue("#f0f0f0", "#333") },
+                        border: { display: true },
+                  },
             },
-            yAdjust: -8,
-            xAdjust: 40,
-          }
-        },
-        limitBawah: {
-          type: 'line',
-          yMin: 20,
-          yMax: 20,
-          borderColor: 'red', // diganti jadi merah
-          borderWidth: 2,
-          borderDash: [6, 4],
-          label: {
-            content: 'Limit Bawah (20°C)',
-            enabled: true,
-            position: "start",
-            color: 'red', // juga merah
-            backgroundColor: 'white',
-            font: {
-              weight: 'bold',
-              size: 10
-            },
-            yAdjust: -8,
-            xAdjust: 40,
-          }
-        }
-      }
-    },
-    title: {
-      display: true,
-      text: 'Range: 20°C - 28°C',
-      position: 'bottom',
-      padding: {
-        top: 2,
-        bottom: 0
-      },
-      font: {
-        size: 10,
-        style: 'italic'
-      },
-      color: useColorModeValue("#666", "#ccc"),
-    }
-  }
-};
+            plugins: {
+                  ...commonOptions.plugins,
+                  annotation: {
+                        annotations: {
+                              limitAtas: {
+                                    type: 'line',
+                                    yMin: 28,
+                                    yMax: 28,
+                                    borderColor: 'red',
+                                    borderWidth: 2,
+                                    borderDash: [6, 4],
+                                    label: {
+                                          content: 'Limit Atas (28°C)',
+                                          enabled: true,
+                                          position: "start",
+                                          color: 'red',
+                                          backgroundColor: 'white',
+                                          font: {
+                                                weight: 'bold',
+                                                size: 10
+                                          },
+                                          yAdjust: -8,
+                                          xAdjust: 40,
+                                    }
+                              },
+                              limitBawah: {
+                                    type: 'line',
+                                    yMin: 20,
+                                    yMax: 20,
+                                    borderColor: 'red', // diganti jadi merah
+                                    borderWidth: 2,
+                                    borderDash: [6, 4],
+                                    label: {
+                                          content: 'Limit Bawah (20°C)',
+                                          enabled: true,
+                                          position: "start",
+                                          color: 'red', // juga merah
+                                          backgroundColor: 'white',
+                                          font: {
+                                                weight: 'bold',
+                                                size: 10
+                                          },
+                                          yAdjust: -8,
+                                          xAdjust: 40,
+                                    }
+                              }
+                        }
+                  },
+                  title: {
+                        display: true,
+                        text: 'Range: 20°C - 28°C',
+                        position: 'bottom',
+                        padding: {
+                              top: 2,
+                              bottom: 0
+                        },
+                        font: {
+                              size: 10,
+                              style: 'italic'
+                        },
+                        color: useColorModeValue("#666", "#ccc"),
+                  }
+            }
+      };
 
       // Detect desktop (lg and up) or not
       const isDesktop = useBreakpointValue({ base: false, lg: true });
@@ -568,7 +578,7 @@ const Dashboard = () => {
                                           {Object.entries(data).map(([room, values], index) => {
                                                 const temperature = parseFloat(values.Temperature);
                                                 const humidity = parseFloat(values.RH);
-                                               const isWarning = !isNaN(temperature) && (temperature < 20 || temperature > 28);
+                                                const isWarning = !isNaN(temperature) && (temperature < 20 || temperature > 28);
                                                 const statusColor = getStatusColor(temperature);
                                                 const statusText = getStatusText(temperature);
 

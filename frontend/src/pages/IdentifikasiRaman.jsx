@@ -15,9 +15,17 @@ const API_BASE = process.env.REACT_APP_API_BASE_URL
 const RamanDashboard = () => {
       const userRedux = useSelector((state) => state.user.user);
       const inisial = userRedux?.inisial;
-      const emailForRequestRaman = (userRedux?.userrole === "admin", userRedux?.jabatan === "SUPERVISOR WH", userRedux?.jabatan === "INSPEKTOR QC");
+      const emailForRequestRaman = (userRedux?.userrole === "admin", userRedux?.jabatan === "SUPERVISOR WH" ||userRedux?.jabatan === "INSPEKTOR QC");
       const idOperator = userRedux?.id;
       const idInspektor = userRedux?.id;
+      const isAdminAndInspektor = (
+  userRedux?.userrole === "admin" ||
+  userRedux?.userrole === "super admin" ||
+  userRedux?.jabatan === "INSPEKTOR QC"
+);
+
+
+
       const [pages, setPages] = useState('warehouse');
       const [materials, setMaterials] = useState(['']);
       // New states for batch options fetched per material
@@ -238,13 +246,12 @@ const RamanDashboard = () => {
       };
 
       // Call inspector: kirim batch_number & vat_count hasil dropdown/manual
-      const createRequest = async () => {
+    const createRequest = async () => {
             const requestsToSend = materials
                   .map((m, i) => ({
                         material: m,
                         batch_number: batchNumbers[i],
-                        vat_count: vatCounts[i],
-                        tanggal_timbang: tanggalTimbang[i]
+                        vat_count: vatCounts[i]
                   }))
                   .filter(x => x.material.trim() && x.batch_number && x.vat_count && !isNaN(Number(x.vat_count)));
 
@@ -252,7 +259,7 @@ const RamanDashboard = () => {
 
             try {
                   await Promise.all(
-                        requestsToSend.map(data =>
+                        requestsToSend.map((data) =>
                               axios.post(`${API_BASE}/Raman/request`, {
                                     material_name: data.material,
                                     operator_id: idOperator,
@@ -262,7 +269,18 @@ const RamanDashboard = () => {
                               })
                         )
                   );
-                  // Kirim Telegram setelah request
+
+                  // ✅ Kirim ke Python TTS dengan format lengkap
+                  try {
+                        await axios.post('http://10.126.7.220:5005/speak', {
+                              inisial,
+                              requests: requestsToSend
+                        });
+                  } catch (ttsErr) {
+                        console.error('Gagal kirim ke TTS:', ttsErr.message);
+                  }
+
+                  // Kirim Telegram
                   try {
                         let pesanTelegram = `📦 <b>Request Raman Baru</b>\n`;
                         pesanTelegram += `Created By: <b>${inisial}</b>\n`;
@@ -274,7 +292,11 @@ const RamanDashboard = () => {
                         await axios.post(`${API_BASE}/bot/telegram/send`, {
                               message: pesanTelegram
                         });
-                  } catch (err) { }
+                  } catch (err) {
+                        console.warn('Gagal kirim ke Telegram:', err.message);
+                  }
+
+                  // Reset form
                   setMaterials(['']);
                   setBatchOptions([[]]);
                   setBatchNumbers(['']);
@@ -343,7 +365,7 @@ const RamanDashboard = () => {
       }, [onProgress, completed, fetchUsedVats]);
 
       // QC: Process request to on progress (assign inspector only)
-      const processRequest = async () => {
+         const processRequest = async () => {
             if (!currentRequest || !idInspektor) return;
 
             try {
@@ -353,6 +375,13 @@ const RamanDashboard = () => {
                   };
 
                   await axios.patch(`${API_BASE}/Raman/request/${currentRequest.id}/progress`, body);
+                  axios.post('http://10.126.7.220:5005/next-clicked')
+                        .then(response => {
+                              console.log('✅ Next clicked:', response.data);
+                        })
+                        .catch(error => {
+                              console.error('❌ Error:', error);
+                        });
 
                   // Kirim notifikasi Telegram
                   const datetime = new Date().toLocaleString("id-ID", {
@@ -385,6 +414,7 @@ const RamanDashboard = () => {
                   }
             }
       };
+
 
       // Toggle vat selection (QC) - tidak bisa pilih kalau sudah pernah dipilih di batch yang sama
       const toggleVat = (requestId, vatNumber, batchNumber, materialId) => {
@@ -646,7 +676,7 @@ const RamanDashboard = () => {
                                                                         </div>
                                                                         <div className="flex-1">
                                                                               <p className={`text-xs ${textSecondary}`}>
-                                                                                    Tanggal Timbang: { toLocaleID(request.tanggalTimbang)}
+                                                                                    Tanggal Timbang: {toLocaleID(request.tanggalTimbang)}
                                                                               </p>
                                                                               <p className={`font-medium ${textMain} text-sm`}>
                                                                                     Material: {request.materials.join(', ')}
@@ -801,24 +831,29 @@ const RamanDashboard = () => {
                                                                         }
                                                                   </p>
                                                             </div>
-                                                            <button
-                                                                  onClick={() => setVatModalOpen({
-                                                                        isOpen: true,
-                                                                        item: item,
-                                                                        usedVats: usedVats
-                                                                  })}
-                                                                  className={`w-full px-4 py-2 mb-2 ${btnSecondary} text-gray-700 dark:text-gray-200 rounded-lg transition-colors text-sm border ${borderInput}`}
-                                                            >
-                                                                  Select Vats ({item.selectedVats?.length || 0}/{item.vatCount})
-                                                            </button>
+                                                            {isAdminAndInspektor && (
+                                                                  <>
+                                                                        <button
+                                                                              onClick={() => setVatModalOpen({
+                                                                                    isOpen: true,
+                                                                                    item: item,
+                                                                                    usedVats: usedVats
+                                                                              })}
+                                                                              className={`w-full px-4 py-2 mb-2 ${btnSecondary} text-gray-700 dark:text-gray-200 rounded-lg transition-colors text-sm border ${borderInput}`}
+                                                                        >
+                                                                              Select Vats ({item.selectedVats?.length || 0}/{item.vatCount})
+                                                                        </button>
 
-                                                            <button
-                                                                  onClick={() => submitProgress(item)}
-                                                                  disabled={!item.selectedVats || item.selectedVats.length === 0}
-                                                                  className={`w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors text-sm`}
-                                                            >
-                                                                  Submit
-                                                            </button>
+                                                                        <button
+                                                                              onClick={() => submitProgress(item)}
+                                                                              disabled={!item.selectedVats || item.selectedVats.length === 0}
+                                                                              className={`w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors text-sm`}
+                                                                        >
+                                                                              Submit
+                                                                        </button>
+                                                                  </>
+                                                            )}
+
                                                       </div>
                                                 );
                                           })}
@@ -950,7 +985,7 @@ const RamanDashboard = () => {
                               </div>
                         </div>
                         {/* Request Modal for QC */}
-                        {showModal && currentRequest && (
+                        {isAdminAndInspektor && showModal && currentRequest && (
                               <div className={`${modalOverlay} fixed inset-0 flex items-center justify-center p-4 z-50`}>
                                     <div className={`${bgModal} rounded-xl shadow-xl max-w-md w-full p-6`}>
                                           <h3 className={`text-xl font-semibold ${modalText} mb-4`}>
@@ -1007,9 +1042,10 @@ const RamanDashboard = () => {
                                     </div>
                               </div>
                         )}
+                        
 
                         {/* Complete Detail Modal */}
-                        {showDetailModal && selectedComplete && (
+                        {isAdminAndInspektor && showDetailModal && selectedComplete && (
                               <div className={`${modalOverlay} fixed inset-0 flex items-center justify-center p-4 z-50`}>
                                     <div className={`${bgModal} rounded-xl shadow-xl max-w-md w-full p-6`}>
                                           <div className="flex items-center mb-4">

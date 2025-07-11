@@ -1,5 +1,6 @@
 /* eslint-disable no-unused-vars */
 import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { useColorMode, useColorModeValue, Button, Spinner } from "@chakra-ui/react";
 import {
   PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid
@@ -258,6 +259,7 @@ export default function SampleMonitoringDashboard() {
   const [showPendingDetails, setShowPendingDetails] = useState(false);
   const [showPendingDetailsRM, setShowPendingDetailsRM] = useState(false);
   const [showPendingDetailsPM, setShowPendingDetailsPM] = useState(false);
+  const navigate = useNavigate();
 
   // State untuk breakdown bulanan
   const [showBreakdownAll, setShowBreakdownAll] = useState(false);
@@ -419,30 +421,42 @@ export default function SampleMonitoringDashboard() {
           </div>
         </div>
 
-        <div className="mt-4 sm:mt-0 flex gap-2">
-          <Button
-            leftIcon={autoRefresh ? <Pause size={16} /> : <Play size={16} />}
-            colorScheme={autoRefresh ? "orange" : "green"}
-            variant="outline"
-            size="sm"
-            onClick={() => setAutoRefresh(!autoRefresh)}
-            className="animate-pulse"
-          >
-            {autoRefresh ? "Stop Auto" : "Auto Refresh"}
-          </Button>
-          <Button
-            leftIcon={loading ? <Spinner size="xs" /> : <RefreshCcw size={16} />}
-            colorScheme="teal"
-            variant="solid"
-            size="sm"
-            onClick={handleRefresh}
-            isLoading={loading}
-            loadingText="Refreshing"
-            className="shadow-lg hover:shadow-xl transition-all duration-300"
-          >
-            Refresh Data
-          </Button>
-        </div>
+       <div className="mt-4 sm:mt-0 flex gap-2">
+                               <Button
+                                    leftIcon={<Boxes size= {16} /> }
+                                    colorScheme="blue"
+                                    variant="solid"
+                                    size="sm"
+                                    onClick={navigate.bind(null, '/DashboardRamanView')}
+                                    isLoading={loading}
+                                    loadingText="Refreshing"
+                                    className="shadow-lg hover:shadow-xl transition-all duration-300"
+                              >
+                                    Dashboard Raman
+                              </Button>
+                              <Button
+                                    leftIcon={autoRefresh ? <Pause size={16} /> : <Play size={16} />}
+                                    colorScheme={autoRefresh ? "orange" : "green"}
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => setAutoRefresh(!autoRefresh)}
+                                    className="animate-pulse"
+                              >
+                                    {autoRefresh ? "Stop Auto" : "Auto Refresh"}
+                              </Button>
+                              <Button
+                                    leftIcon={loading ? <Spinner size="xs" /> : <RefreshCcw size={16} />}
+                                    colorScheme="teal"
+                                    variant="solid"
+                                    size="sm"
+                                    onClick={handleRefresh}
+                                    isLoading={loading}
+                                    loadingText="Refreshing"
+                                    className="shadow-lg hover:shadow-xl transition-all duration-300"
+                              >
+                                    Refresh Data
+                              </Button>
+                        </div>
       </div>
 
       {/* Key Metrics Banner */}
