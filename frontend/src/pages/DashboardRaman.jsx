@@ -18,7 +18,7 @@ const RamanMonitoringDashboard = () => {
       const fetchMaterials = async () => {
             setLoading(true);
             try {
-                  const response = await axios.get('http:///raman/getDashboardData');
+                  const response = await axios.get(`${process.env.REACT_APP_API_BASE_URL}/raman/getDashboardData`);
                   setMaterials(response.data);
             } catch (error) {
                   console.error("Error fetching data:", error);
