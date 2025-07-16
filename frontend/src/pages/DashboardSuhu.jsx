@@ -153,7 +153,7 @@ const Dashboard = () => {
                                                 const lastSent = lastAlertSent[room];
                                                 const oneHour = 60 * 60 * 1000;
 
-                                                if (!isNaN(temperature) && (temperature < 20 || temperature > 24)) {
+                                                if (!isNaN(temperature) && (temperature < 20 || temperature > 28)) {
                                                       if (!lastSent || timestamp - new Date(lastSent) > oneHour) {
                                                             sendAlertToBackend({ room, temperature, time: timestamp.toISOString() });
                                                             setLastAlertSent((prev) => ({
@@ -317,14 +317,14 @@ const Dashboard = () => {
 
       const getStatusColor = (temp) => {
             if (isNaN(temp)) return "gray.500";
-            if (temp > 24) return "red.500";
+            if (temp > 28) return "red.500";
             if (temp < 20) return "blue.500";
             return "green.500";
       };
 
       const getStatusText = (temp) => {
             if (isNaN(temp)) return "Tidak ada data";
-            if (temp > 24) return "Suhu Tinggi";
+            if (temp > 28) return "Suhu Tinggi";
             if (temp < 20) return "Suhu Rendah";
             return "Normal";
       };
@@ -354,7 +354,7 @@ const Dashboard = () => {
                   ...commonOptions.scales,
                   y: {
                         min: 20,
-                        max: 24,
+                        max: 28,
                         ticks: {
                               stepSize: 1,
                               callback: function (value) { return value + '°C'; },
@@ -371,13 +371,13 @@ const Dashboard = () => {
                         annotations: {
                               limitAtas: {
                                     type: 'line',
-                                    yMin: 24,
-                                    yMax: 24,
+                                    yMin: 28,
+                                    yMax: 28,
                                     borderColor: 'red',
                                     borderWidth: 2,
                                     borderDash: [6, 4],
                                     label: {
-                                          content: 'Limit Atas (24°C)',
+                                          content: 'Limit Atas (28°C)',
                                           enabled: true,
                                           position: "start",
                                           color: 'red',
@@ -415,7 +415,7 @@ const Dashboard = () => {
                   },
                   title: {
                         display: true,
-                        text: 'Range: 20°C - 24°C',
+                        text: 'Range: 20°C - 28°C',
                         position: 'bottom',
                         padding: {
                               top: 2,
@@ -578,7 +578,7 @@ const Dashboard = () => {
                                           {Object.entries(data).map(([room, values], index) => {
                                                 const temperature = parseFloat(values.Temperature);
                                                 const humidity = parseFloat(values.RH);
-                                                const isWarning = !isNaN(temperature) && (temperature < 20 || temperature > 24);
+                                                const isWarning = !isNaN(temperature) && (temperature < 20 || temperature > 28);
                                                 const statusColor = getStatusColor(temperature);
                                                 const statusText = getStatusText(temperature);
 
