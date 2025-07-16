@@ -153,41 +153,15 @@ const Dashboard = () => {
                                                 const lastSent = lastAlertSent[room];
                                                 const oneHour = 60 * 60 * 1000;
 
-                                                const FIVE_MINUTES = 5 * 60 * 1000; // 5 menit dalam ms
-
-                                                const isSuhuTidakNormal = (temp) => temp < 20 || temp > 24;
-
-                                                const monitorSuhuDanKirimAlert = ({ room, temperature, timestamp }) => {
-                                                      const time = timestamp.toISOString();
-
-                                                      // Periksa apakah suhu masih tidak normal
-                                                      if (!isNaN(temperature) && isSuhuTidakNormal(temperature)) {
-                                                            const lastSent = lastAlertSent?.[room];
-                                                            const elapsed = lastSent ? new Date(timestamp) - new Date(lastSent) : Infinity;
-
-                                                            // Kirim alert jika sudah lebih dari 5 menit sejak terakhir kirim
-                                                            if (elapsed > FIVE_MINUTES) {
-                                                                  sendAlertToBackend({ room, temperature, time });
-
-                                                                  // Simpan waktu terakhir alert dikirim
-                                                                  setLastAlertSent((prev) => ({
-                                                                        ...prev,
-                                                                        [room]: time,
-                                                                  }));
-                                                            }
-                                                      } else {
-                                                            // Jika suhu normal, reset waktu pengiriman agar bisa kirim lagi nanti
-                                                            if (lastAlertSent?.[room]) {
-                                                                  console.log(`🌡️ Suhu di ${room} kembali normal (${temperature}°C), reset waktu alert.`);
-                                                                  setLastAlertSent((prev) => {
-                                                                        const updated = { ...prev };
-                                                                        delete updated[room];
-                                                                        return updated;
-                                                                  });
-                                                            }
+                                                if (!isNaN(temperature) && (temperature < 20 || temperature > 24)) {
+                                                      if (!lastSent || timestamp - new Date(lastSent) > oneHour) {
+                                                            sendAlertToBackend({ room, temperature, time: timestamp.toISOString() });
+                                                            setLastAlertSent((prev) => ({
+                                                                  ...prev,
+                                                                  [room]: timestamp.toISOString(),
+                                                            }));
                                                       }
-                                                };
-
+                                                }
                                           }
                                     }
                               });
