@@ -240,8 +240,8 @@ exports.loginUser = async (req, res) => {
       jabatan: user.jabatan,
       nama_lengkap: user.nama_lengkap,
       inisial: user.inisial,
-      img: user.img,
-      departement: user.departement
+       departement: user.departement,
+      img: user.img
         ? `${BACKEND_URL}/${user.img.replace("public/", "")}`
         : null,
     };
