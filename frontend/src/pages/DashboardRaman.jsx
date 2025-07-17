@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Filter, Clock, CheckCircle, Eye, Calendar, Package, RefreshCw, Boxes, ChevronLeft, ChevronRight, TrendingUp, Activity, AlertCircle } from 'lucide-react';
+import { Search, Filter, Clock, CheckCircle, Eye, Calendar, Package, RefreshCw, Boxes, ChevronLeft, ChevronRight, TrendingUp, Activity } from 'lucide-react';
 import axios from 'axios';
 
 const RamanMonitoringDashboard = () => {
@@ -361,7 +361,7 @@ const RamanMonitoringDashboard = () => {
 
       {/* Enhanced Modal */}
       {showDetail && selectedMaterial && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fade-in">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fade-in mt-20">
           <div className="bg-white rounded-3xl shadow-2xl max-w-6xl w-full max-h-[90vh] overflow-hidden border border-gray-200/50 animate-slide-up">
             <div className="p-8 border-b border-gray-200/50 bg-gradient-to-r from-blue-50 to-purple-50">
               <div className="flex items-center justify-between">
