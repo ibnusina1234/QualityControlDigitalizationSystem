@@ -290,13 +290,17 @@ export default function MonitoringPage() {
   const [endDate, setEndDate] = useState(today);
   const [data, setData] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [showFilters, setShowFilters] = useState(false);\
+  const [showFilters, setShowFilters] = useState(false);
    const reduxUser = useSelector((state) => state.user.user); // ✅ Ambil user dari Redux
     const currentUserRole = reduxUser?.userrole;
     const currentJabatan = reduxUser?.jabatan;
-    const currentDepartement = reduxUser?.departement;const userAccsess = currentUserRole === 'ADMIN' || currentJabatan === 'INSPEKTOR KALIBRASI QA' || currentDepartement === 'QC' || currentJabatan === 'SUPERVISOR QA'|| currentJabatan === 'MANAGER QA' ;
-
-
+    const currentDepartement = reduxUser?.departement;
+   const userAccsess =
+  currentUserRole === 'ADMIN' ||
+  currentJabatan === 'INSPEKTOR KALIBRASI QA' ||
+  currentDepartement === 'QC' ||
+  currentJabatan === 'SUPERVISOR QA' ||
+  currentJabatan === 'MANAGER QA';
   // Dark/Light mode styles
   const bgMain = useColorModeValue("bg-gray-50", "bg-gray-900");
   const bgCard = useColorModeValue("bg-white", "bg-gray-800");
@@ -456,6 +460,14 @@ export default function MonitoringPage() {
         return null;
     }
   };
+
+  if (!userAccsess) {
+  return (
+    <div className="h-screen w-screen flex items-center justify-center bg-white dark:bg-gray-900">
+      <p className="text-xl font-semibold text-red-600 dark:text-red-400">Akses tidak diperbolehkan</p>
+    </div>
+  );
+}
 
   return (
     <div className={`h-screen w-screen flex flex-col overflow-hidden ${bgMain} ${textMain}`}>
