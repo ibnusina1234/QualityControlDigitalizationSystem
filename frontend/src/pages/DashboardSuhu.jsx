@@ -177,7 +177,7 @@ const Dashboard = () => {
 
                                           if (type === "Temperature") {
                                                 const temperature = parseFloat(message[key]);
-                                                const isAbnormal = !isNaN(temperature) && (temperature < 20 || temperature > 24.7);
+                                                const isAbnormal = !isNaN(temperature) && (temperature < 20 || temperature > 28);
                                                 const isTimerRunning = !!alertTimers[room];
 
                                                 if (isAbnormal && !isTimerRunning) {
