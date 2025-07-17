@@ -296,7 +296,7 @@ export default function MonitoringPage() {
     const currentJabatan = reduxUser?.jabatan;
     const currentDepartement = reduxUser?.departement;
    const userAccsess =
-  currentUserRole === 'ADMIN' ||
+  currentUserRole === 'admin' ||
   currentJabatan === 'INSPEKTOR KALIBRASI QA' ||
   currentDepartement === 'QC' ||
   currentJabatan === 'SUPERVISOR QA' ||

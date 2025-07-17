@@ -24,6 +24,8 @@ const AuthLoader = ({ children }) => {
           nama_lengkap: res.data.nama_lengkap,
           userrole: res.data.userrole,
           img: res.data.img,
+          departement: res.data.departement,
+          jabatan: res.data.jabatan,
         }));
 
         setAuthorized(true);
