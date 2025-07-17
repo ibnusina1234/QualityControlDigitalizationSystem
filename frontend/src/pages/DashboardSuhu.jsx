@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import {
       Box, SimpleGrid, Stat, StatLabel, StatNumber, Heading,
       Icon, Flex, Text, useColorModeValue, Badge, Divider,
@@ -64,10 +64,11 @@ const Dashboard = () => {
       const selectedBg = useColorModeValue("teal.50", "teal.900");
       const xTickColor = useColorModeValue("#666", "#ccc");
       const textColor = useColorModeValue("#666", "#ccc");
+      const [alertTimers, setAlertTimers] = useState({});
 
       const socketRef = useRef(null);
       const [selectedRoom, setSelectedRoom] = useState(null);
-      const [lastAlertSent, setLastAlertSent] = useState({});
+      // const [lastAlertSent, setLastAlertSent] = useState({});
       const [data, setData] = useState(
             Object.fromEntries(rooms.map((room) => [room, { Temperature: "N/A", RH: "N/A", updatedAt: null }]))
       );
@@ -102,14 +103,12 @@ const Dashboard = () => {
 
       const sendAlertToBackend = async ({ room, temperature, time }) => {
             try {
-                  // 🔁 Kirim ke backend utama
                   await fetch("http://10.126.15.141:8081/users/alert", {
                         method: "POST",
                         headers: { "Content-Type": "application/json" },
                         body: JSON.stringify({ room, temperature, time }),
                   });
 
-                  // 🔔 Kirim juga ke Python TTS alarm speaker
                   await fetch("http://10.126.7.220:5005/alert", {
                         method: "POST",
                         headers: { "Content-Type": "application/json" },
@@ -122,8 +121,32 @@ const Dashboard = () => {
             }
       };
 
+      const scheduleRepeatingAlert = useCallback((room, temperature) => {
+            const interval = setInterval(() => {
+                  const now = new Date().toISOString();
+                  sendAlertToBackend({ room, temperature, time: now });
+            }, 10 * 60 * 1000); // 10 menit
+
+            setAlertTimers((prev) => ({
+                  ...prev,
+                  [room]: interval
+            }));
+      }, []);
+
+
+      const stopRepeatingAlert = useCallback((room) => {
+            if (alertTimers[room]) {
+                  clearInterval(alertTimers[room]);
+                  setAlertTimers((prev) => {
+                        const updated = { ...prev };
+                        delete updated[room];
+                        return updated;
+                  });
+            }
+      }, [alertTimers]);
+
+
       useEffect(() => {
-            // Mengatur height fullscreen
             document.body.style.margin = '0';
             document.body.style.padding = '0';
             document.body.style.overflow = 'hidden';
@@ -139,32 +162,37 @@ const Dashboard = () => {
 
                         setData((prevData) => {
                               const updatedData = { ...prevData };
+
                               Object.keys(message).forEach((key) => {
                                     const match = key.match(/(Temperature|RH)_(Ruang_.*)/);
                                     if (match) {
                                           const [, type, rawRoom] = match;
                                           const room = rawRoom.replace(/_/g, " ");
-                                          if (!updatedData[room]) updatedData[room] = { Temperature: "N/A", RH: "N/A", updatedAt: null };
+                                          if (!updatedData[room]) {
+                                                updatedData[room] = { Temperature: "N/A", RH: "N/A", updatedAt: null };
+                                          }
+
                                           updatedData[room][type] = message[key];
                                           updatedData[room].updatedAt = timestamp.toISOString();
 
                                           if (type === "Temperature") {
                                                 const temperature = parseFloat(message[key]);
-                                                const lastSent = lastAlertSent[room];
-                                                const oneHour = 60 * 60 * 1000;
+                                                const isAbnormal = !isNaN(temperature) && (temperature < 20 || temperature > 28);
+                                                const isTimerRunning = !!alertTimers[room];
 
-                                                if (!isNaN(temperature) && (temperature < 20 || temperature > 28)) {
-                                                      if (!lastSent || timestamp - new Date(lastSent) > oneHour) {
-                                                            sendAlertToBackend({ room, temperature, time: timestamp.toISOString() });
-                                                            setLastAlertSent((prev) => ({
-                                                                  ...prev,
-                                                                  [room]: timestamp.toISOString(),
-                                                            }));
-                                                      }
+                                                if (isAbnormal && !isTimerRunning) {
+                                                      const now = timestamp.toISOString();
+                                                      sendAlertToBackend({ room, temperature, time: now });
+                                                      scheduleRepeatingAlert(room, temperature);
+                                                }
+
+                                                if (!isAbnormal && isTimerRunning) {
+                                                      stopRepeatingAlert(room);
                                                 }
                                           }
                                     }
                               });
+
                               return updatedData;
                         });
 
@@ -176,7 +204,6 @@ const Dashboard = () => {
                                     const dataset = prevChartData.datasets.find((d) => d.label === room);
                                     const oldData = dataset?.data || [];
 
-                                    // Menyimpan dengan 1 desimal untuk perubahan yang lebih terlihat
                                     const valueToAdd = isNaN(newValue)
                                           ? (oldData[oldData.length - 1]?.y || defaultY)
                                           : parseFloat(newValue.toFixed(1));
@@ -206,8 +233,11 @@ const Dashboard = () => {
             return () => {
                   socketRef.current?.close();
                   document.body.style.overflow = '';
+                  // Clear semua timer saat komponen unmount
+                  Object.values(alertTimers).forEach(clearInterval);
             };
-      }, [lastAlertSent, selectedRoom]);
+      }, [alertTimers, selectedRoom, scheduleRepeatingAlert, stopRepeatingAlert]);
+
 
       useEffect(() => {
             setChartData(prev => ({
@@ -438,7 +468,7 @@ const Dashboard = () => {
                   w="100vw"
                   h="100vh"
                   bg={bg}
-                  mt={5}
+                  mt={20}
                   overflow="hidden"
                   display="flex"
                   flexDirection="column"
