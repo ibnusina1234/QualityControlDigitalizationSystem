@@ -2,7 +2,9 @@ import React, { useEffect, useState, useMemo } from 'react';
 import PdfGenerator from '../components/TemplatePdfHistorical';
 import * as XLSX from "xlsx";
 import { saveAs } from "file-saver";
+import { useSelector } from "react-redux"; 
 import { useColorModeValue } from "@chakra-ui/react";
+
 
 const roomOptions = [
   'Ruang_ICP',
@@ -288,7 +290,12 @@ export default function MonitoringPage() {
   const [endDate, setEndDate] = useState(today);
   const [data, setData] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [showFilters, setShowFilters] = useState(false);
+  const [showFilters, setShowFilters] = useState(false);\
+   const reduxUser = useSelector((state) => state.user.user); // ✅ Ambil user dari Redux
+    const currentUserRole = reduxUser?.userrole;
+    const currentJabatan = reduxUser?.jabatan;
+    const currentDepartement = reduxUser?.departement;const userAccsess = currentUserRole === 'ADMIN' || currentJabatan === 'INSPEKTOR KALIBRASI QA' || currentDepartement === 'QC' || currentJabatan === 'SUPERVISOR QA'|| currentJabatan === 'MANAGER QA' ;
+
 
   // Dark/Light mode styles
   const bgMain = useColorModeValue("bg-gray-50", "bg-gray-900");
