@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Search, Filter, Clock, CheckCircle, Eye, Calendar, Package, RefreshCw, Boxes, ChevronLeft, ChevronRight, TrendingUp, Activity } from 'lucide-react';
 import axios from 'axios';
 
@@ -12,6 +13,7 @@ const RamanMonitoringDashboard = () => {
   const [animateCards, setAnimateCards] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const rowsPerPage = 10;
+      const navigate = useNavigate();
 
   // Mock data for demonstration
       const [materials, setMaterials] = useState([]);
@@ -88,7 +90,7 @@ const RamanMonitoringDashboard = () => {
             </div>
             <div className="flex items-center gap-3">
               <button 
-                onClick={() => {/* navigate('/DashboardSampelRMPM') */}} 
+                onClick={() => {navigate('/DashboardSampelRMPM')}} 
                 disabled={loading} 
                 className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-xl hover:from-green-700 hover:to-green-800 transition-all duration-300 transform hover:scale-105 disabled:opacity-50 shadow-lg hover:shadow-xl"
               >
