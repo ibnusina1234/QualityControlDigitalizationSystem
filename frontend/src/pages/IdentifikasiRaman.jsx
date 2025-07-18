@@ -6,10 +6,9 @@ import FullCompleteModal from './FullCompleteModal';
 import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc';
 import timezone from 'dayjs/plugin/timezone';
-import { useColorModeValue } from '@chakra-ui/react';
+import { useColorModeValue, Modal, ModalOverlay, ModalContent, ModalHeader, ModalBody, ModalFooter, Button } from '@chakra-ui/react';
 dayjs.extend(utc);
 dayjs.extend(timezone);
-
 const API_BASE = process.env.REACT_APP_API_BASE_URL
 
 const RamanDashboard = () => {
@@ -23,6 +22,18 @@ const RamanDashboard = () => {
             userRedux?.userrole === "super admin" ||
             userRedux?.jabatan === "INSPEKTOR QC"
       );
+      const isAdmin = userRedux?.userrole === "admin" || userRedux?.userrole === "super admin";
+      const [showDeleteCompleteModal, setShowDeleteCompleteModal] = useState(false);
+      const [deleteCompleteTarget, setDeleteCompleteTarget] = useState(null);
+
+      //state untuk modal editComplete
+      const [showEditCompleteModal, setShowEditCompleteModal] = useState(false);
+      const [editCompleteTarget, setEditCompleteTarget] = useState(null);
+      const [editSelectedVats, setEditSelectedVats] = useState([]);
+      const [editNotes, setEditNotes] = useState('');
+      const [editLoading, setEditLoading] = useState(false);
+
+
 
 
 
@@ -158,6 +169,26 @@ const RamanDashboard = () => {
             }
       };
 
+      // Fungsi handleEditComplete
+      const handleEditComplete = async (id, vats, notes) => {
+            setEditLoading(true);
+            try {
+                  await axios.patch(`${API_BASE}/Raman/request/${id}/edit-complete`, {
+                        selectedVats: vats,
+                        notes: notes
+                  });
+                  setShowEditCompleteModal(false);
+                  setEditCompleteTarget(null);
+                  setEditSelectedVats([]);
+                  setEditNotes('');
+                  fetchRequests();
+                  alert("Data complete berhasil diubah.");
+            } catch (err) {
+                  alert("Gagal edit data complete");
+            }
+            setEditLoading(false);
+      };
+
       // Update material value
       const updateMaterial = (index, value) => {
             const newMaterials = [...materials];
@@ -272,7 +303,7 @@ const RamanDashboard = () => {
 
                   // ✅ Kirim ke Python TTS dengan format lengkap
                   try {
-                        await axios.post('http://10.126.7.220:5005/speak', {
+                        await axios.post('http://10.126.15.208:5005/speak', {
                               inisial,
                               requests: requestsToSend
                         });
@@ -378,7 +409,7 @@ const RamanDashboard = () => {
                   await axios.patch(`${API_BASE}/Raman/request/${currentRequest.id}/progress`, body);
 
                   // ✅ Stop alarm berdasarkan batch_number
-                  await axios.post('http://10.126.7.220:5005/next-clicked', {
+                  await axios.post('http://10.126.15.208:5005/next-clicked', {
                         batch_number: currentRequest.batch_number
                   }, {
                         headers: {
@@ -926,6 +957,7 @@ const RamanDashboard = () => {
                                     </div>
                               )}
                               {/* Complete */}
+                              {/* Complete */}
                               <div className={`${cardBg} rounded-xl ${cardShadow} p-6 relative`}>
                                     <div className="flex items-center mb-4">
                                           <CheckCircle className="h-6 w-6 text-green-600 dark:text-green-300 mr-3" />
@@ -944,7 +976,7 @@ const RamanDashboard = () => {
                                                       <div
                                                             key={item.id}
                                                             onClick={() => showCompleteDetail(item)}
-                                                            className={`p-4 border ${borderColor} rounded-lg hover:bg-green-50 dark:hover:bg-green-900 cursor-pointer transition-colors`}
+                                                            className={`p-4 border ${borderColor} rounded-lg hover:bg-green-50 dark:hover:bg-green-900 cursor-pointer transition-colors relative`}
                                                       >
                                                             <p className={`font-medium ${textMain} text-sm`}>
                                                                   {item.materials.join(', ')}
@@ -974,6 +1006,22 @@ const RamanDashboard = () => {
                                                                               : 'On-progress Raman'
                                                                   }
                                                             </p>
+                                                            {/* Tombol Edit hanya untuk Admin/Inspektor */}
+                                                            {isAdminAndInspektor && (
+                                                                  <button
+                                                                        onClick={e => {
+                                                                              e.stopPropagation();
+                                                                              setEditCompleteTarget(item);
+                                                                              setEditSelectedVats(item.selectedVats || []);
+                                                                              setEditNotes(item.notes || '');
+                                                                              setShowEditCompleteModal(true);
+                                                                        }}
+                                                                        className="absolute top-2 right-2 px-2 py-1 rounded bg-yellow-100 dark:bg-yellow-900 text-yellow-700 dark:text-yellow-200 text-xs hover:bg-yellow-200 dark:hover:bg-yellow-800"
+                                                                        title="Edit"
+                                                                  >
+                                                                        Edit
+                                                                  </button>
+                                                            )}
                                                       </div>
                                                 ))}
                                     </div>
@@ -985,66 +1033,69 @@ const RamanDashboard = () => {
                                                 onClose={() => setShowFullComplete(false)}
                                           />
                                     )}
+                                    {/* Modal Edit Complete */}
+                                    <Modal isOpen={showEditCompleteModal} onClose={() => setShowEditCompleteModal(false)} isCentered>
+                                          <ModalOverlay />
+                                          <ModalContent>
+                                                <ModalHeader color="yellow.600">Edit Data Complete</ModalHeader>
+                                                <ModalBody>
+                                                      <div className="mb-3">
+                                                            <div className="font-medium mb-2">Pilih Vat (boleh ubah):</div>
+                                                            <div className="grid grid-cols-4 gap-2">
+                                                                  {Array.from({ length: editCompleteTarget?.vatCount || 0 }, (_, i) => i + 1).map(vatNum => {
+                                                                        const isSelected = editSelectedVats.includes(vatNum);
+                                                                        return (
+                                                                              <button
+                                                                                    key={vatNum}
+                                                                                    type="button"
+                                                                                    onClick={() => {
+                                                                                          setEditSelectedVats(isSelected
+                                                                                                ? editSelectedVats.filter(v => v !== vatNum)
+                                                                                                : [...editSelectedVats, vatNum]);
+                                                                                    }}
+                                                                                    className={`p-2 rounded-lg border-2 transition-all ${isSelected
+                                                                                          ? 'bg-green-100 dark:bg-green-900 border-green-500 text-green-700 dark:text-green-200'
+                                                                                          : 'bg-gray-50 dark:bg-gray-900 border-gray-300 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800'
+                                                                                          }`}
+                                                                              >
+                                                                                    Vat {vatNum}
+                                                                              </button>
+                                                                        );
+                                                                  })}
+                                                            </div>
+                                                      </div>
+                                                      <div className="mb-3">
+                                                            <label className="block text-sm font-medium mb-1">Catatan/Notes</label>
+                                                            <textarea
+                                                                  value={editNotes}
+                                                                  onChange={e => setEditNotes(e.target.value)}
+                                                                  className="w-full p-2 border rounded-lg"
+                                                                  rows={2}
+                                                            />
+                                                      </div>
+                                                      <div className="text-xs text-gray-500">
+                                                            Hanya Admin/Inspector yang bisa mengubah data complete. Mohon cek ulang sebelum menyimpan perubahan.
+                                                      </div>
+                                                </ModalBody>
+                                                <ModalFooter>
+                                                      <Button onClick={() => setShowEditCompleteModal(false)} colorScheme="gray" mr={3}>
+                                                            Batal
+                                                      </Button>
+                                                      <Button
+                                                            colorScheme="yellow"
+                                                            isLoading={editLoading}
+                                                            onClick={async () => {
+                                                                  await handleEditComplete(editCompleteTarget.id, editSelectedVats, editNotes);
+                                                            }}
+                                                      >
+                                                            Simpan
+                                                      </Button>
+                                                </ModalFooter>
+                                          </ModalContent>
+                                    </Modal>
                               </div>
+
                         </div>
-                        {/* Request Modal for QC */}
-                        {isAdminAndInspektor && showModal && currentRequest && (
-                              <div className={`${modalOverlay} fixed inset-0 flex items-center justify-center p-4 z-50`}>
-                                    <div className={`${bgModal} rounded-xl shadow-xl max-w-md w-full p-6`}>
-                                          <h3 className={`text-xl font-semibold ${modalText} mb-4`}>
-                                                Process Request
-                                          </h3>
-                                          <div className="space-y-4">
-                                                <div>
-                                                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
-                                                            Materials:
-                                                      </label>
-                                                      <p className={`${modalText} ${modalInput} p-3 rounded-lg`}>
-                                                            {currentRequest?.materials.join(', ')}
-                                                      </p>
-                                                </div>
-                                                <div>
-                                                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
-                                                            Operator:
-                                                      </label>
-                                                      <p className="text-blue-600 dark:text-blue-200 font-medium bg-blue-50 dark:bg-blue-900 p-3 rounded-lg">
-                                                            {currentRequest?.operator}
-                                                      </p>
-                                                </div>
-                                                <div>
-                                                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
-                                                            Batch Number:
-                                                      </label>
-                                                      <p className="text-purple-800 dark:text-purple-200 font-bold bg-gray-50 dark:bg-gray-900 p-3 rounded-lg">
-                                                            {currentRequest?.batch_number || '-'}
-                                                      </p>
-                                                </div>
-                                                <div>
-                                                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
-                                                            Jumlah Vat:
-                                                      </label>
-                                                      <p className={`${modalText} ${modalInput} p-3 rounded-lg`}>
-                                                            {currentRequest?.vatCount || '-'}
-                                                      </p>
-                                                </div>
-                                          </div>
-                                          <div className="flex space-x-3 mt-6">
-                                                <button
-                                                      onClick={() => setShowModal(false)}
-                                                      className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-200 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
-                                                >
-                                                      Cancel
-                                                </button>
-                                                <button
-                                                      onClick={processRequest}
-                                                      className="flex-1 px-4 py-2 bg-purple-600 hover:bg-purple-700 dark:bg-purple-700 dark:hover:bg-purple-800 text-white rounded-lg transition-colors"
-                                                >
-                                                      Next
-                                                </button>
-                                          </div>
-                                    </div>
-                              </div>
-                        )}
 
 
                         {/* Complete Detail Modal */}

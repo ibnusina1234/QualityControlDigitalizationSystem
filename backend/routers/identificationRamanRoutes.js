@@ -107,6 +107,8 @@ router.get("/batch-exist", async (req, res) => {
 // GET: All requests for a specific batch
 router.get("/batch/:batch_number", ramanController.getRequestsByBatch);
 
+router.patch("/request/:id/edit-complete",ramanController.editCompleteRequest);
+
 // GET : Raman Data
 router.get("/getDashboardData",ramanController.getRamanMonitoringData);
 
