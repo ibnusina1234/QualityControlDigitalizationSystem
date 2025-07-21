@@ -460,14 +460,6 @@ export default function MonitoringPage() {
                   default:
                         return null;
             }
-      };
-
-      if (!userAccsess) {
-            return (
-                  <div className="h-screen w-screen flex items-center justify-center bg-white dark:bg-gray-900">
-                        <p className="text-xl font-semibold text-red-600 dark:text-red-400">Akses tidak diperbolehkan</p>
-                  </div>
-            );
       }
 
       return (
