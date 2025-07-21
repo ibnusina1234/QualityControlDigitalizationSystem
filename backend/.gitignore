@@ -1,2 +1,3 @@
 # Abaikan file credentials
 backend/credentials.json
+backend/logs/
