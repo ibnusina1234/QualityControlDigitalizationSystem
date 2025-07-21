@@ -373,8 +373,10 @@ function Navbar({ handleLogout }) {
                                                                         Dashboard
                                                                   </Button>
                                                                   <Button
-                                                                        as={Link}
-                                                                        to="/HistoricalPLC"
+                                                                        onClick={(e) => {
+                                                                              e.stopPropagation(); // opsional, hanya jika perlu
+                                                                              navigate('/HistoricalPLC');
+                                                                        }}
                                                                         variant="ghost"
                                                                         width="100%"
                                                                         justifyContent="flex-start"
@@ -383,9 +385,8 @@ function Navbar({ handleLogout }) {
                                                                               bg: menuHoverBg,
                                                                               color: menuHoverColor,
                                                                         }}
-                                                                        onClick={e => e.stopPropagation()}
                                                                   >
-                                                                        Historical
+                                                                        Historical PLC
                                                                   </Button>
                                                             </Box>
                                                       </Collapse>
@@ -545,7 +546,7 @@ function Navbar({ handleLogout }) {
                                                                   </Collapse>
                                                             </Box>
                                                       </MenuList>
-                                                </Menu> 
+                                                </Menu>
 
                                           </>
                                     )}
@@ -789,7 +790,7 @@ function Navbar({ handleLogout }) {
 
                                           </>
                                     )}
-                                      {/* menu other */}
+                                    {/* menu other */}
                                     {isLoggedIn && (
                                           <>
                                                 <Menu>
@@ -806,17 +807,17 @@ function Navbar({ handleLogout }) {
                                                       </Tooltip>
                                                       <MenuList shadow="lg" p={1}>
                                                             {/* Submenu trigger with hover*/}
-                                                              <MenuItem
-                                                      icon={<RiDashboardLine />}
-                                                      as={Link}
-                                                      to="/RamanDashboard"
-                                                      _hover={{ bg: "teal.50", color: "teal.600" }}
-                                                      borderRadius="md"
-                                                      p={3}
-                                                      fontSize={{ base: "sm", md: "md" }}
-                                                >
-                                                      Raman
-                                                </MenuItem>
+                                                            <MenuItem
+                                                                  icon={<RiDashboardLine />}
+                                                                  as={Link}
+                                                                  to="/RamanDashboard"
+                                                                  _hover={{ bg: "teal.50", color: "teal.600" }}
+                                                                  borderRadius="md"
+                                                                  p={3}
+                                                                  fontSize={{ base: "sm", md: "md" }}
+                                                            >
+                                                                  Raman
+                                                            </MenuItem>
                                                       </MenuList>
                                                 </Menu>
 

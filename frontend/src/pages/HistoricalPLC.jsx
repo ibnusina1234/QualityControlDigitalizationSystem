@@ -295,13 +295,13 @@ export default function MonitoringPage() {
       const currentUserRole = reduxUser?.userrole;
       const currentJabatan = reduxUser?.jabatan;
       const currentDepartement = reduxUser?.departement;
-      const userAccsess =
+      const userAccsess = (
             currentUserRole === 'admin' ||
             currentJabatan === 'INSPEKTOR KALIBRASI QA' ||
             currentDepartement?.trim().toUpperCase() === 'QC' ||
             currentJabatan === 'SUPERVISOR QA' ||
             currentJabatan === 'MANAGER QA' ||
-            currentJabatan === 'ANALIS RM';
+            currentJabatan === 'ANALIS RM');
 
       const bgMain = useColorModeValue("bg-gray-50", "bg-gray-900");
       const bgCard = useColorModeValue("bg-white", "bg-gray-800");
