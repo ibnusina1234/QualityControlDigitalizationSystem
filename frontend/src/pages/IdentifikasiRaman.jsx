@@ -1025,6 +1025,64 @@ const RamanDashboard = () => {
                                                       </div>
                                                 ))}
                                     </div>
+                                    {/* Request Modal for QC */}
+                                    {isAdminAndInspektor && showModal && currentRequest && (
+                                          <div className={`${modalOverlay} fixed inset-0 flex items-center justify-center p-4 z-50`}>
+                                                <div className={`${bgModal} rounded-xl shadow-xl max-w-md w-full p-6`}>
+                                                      <h3 className={`text-xl font-semibold ${modalText} mb-4`}>
+                                                            Process Request
+                                                      </h3>
+                                                      <div className="space-y-4">
+                                                            <div>
+                                                                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
+                                                                        Materials:
+                                                                  </label>
+                                                                  <p className={`${modalText} ${modalInput} p-3 rounded-lg`}>
+                                                                        {currentRequest?.materials.join(', ')}
+                                                                  </p>
+                                                            </div>
+                                                            <div>
+                                                                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
+                                                                        Operator:
+                                                                  </label>
+                                                                  <p className="text-blue-600 dark:text-blue-200 font-medium bg-blue-50 dark:bg-blue-900 p-3 rounded-lg">
+                                                                        {currentRequest?.operator}
+                                                                  </p>
+                                                            </div>
+                                                            <div>
+                                                                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
+                                                                        Batch Number:
+                                                                  </label>
+                                                                  <p className="text-purple-800 dark:text-purple-200 font-bold bg-gray-50 dark:bg-gray-900 p-3 rounded-lg">
+                                                                        {currentRequest?.batch_number || '-'}
+                                                                  </p>
+                                                            </div>
+                                                            <div>
+                                                                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
+                                                                        Jumlah Vat:
+                                                                  </label>
+                                                                  <p className={`${modalText} ${modalInput} p-3 rounded-lg`}>
+                                                                        {currentRequest?.vatCount || '-'}
+                                                                  </p>
+                                                            </div>
+                                                      </div>
+                                                      <div className="flex space-x-3 mt-6">
+                                                            <button
+                                                                  onClick={() => setShowModal(false)}
+                                                                  className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-200 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                                                            >
+                                                                  Cancel
+                                                            </button>
+                                                            <button
+                                                                  onClick={processRequest}
+                                                                  className="flex-1 px-4 py-2 bg-purple-600 hover:bg-purple-700 dark:bg-purple-700 dark:hover:bg-purple-800 text-white rounded-lg transition-colors"
+                                                            >
+                                                                  Next
+                                                            </button>
+                                                      </div>
+                                                </div>
+                                          </div>
+                                    )}
                                     {/* Full Complete Modal */}
                                     {showFullComplete && (
                                           <FullCompleteModal
