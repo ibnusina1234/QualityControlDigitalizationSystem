@@ -272,6 +272,8 @@ exports.progressRequest = async (req, res) => {
 
 exports.deleteRequest = async (req, res) => {
   const { request_id } = req.params;
+   console.log('req.user:', req.user);
+  console.log('req.body:', req.body);
   try {
     // Dapatkan info batch untuk log
     const [requestDetails] = await db1.query(
