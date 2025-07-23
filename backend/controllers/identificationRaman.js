@@ -3,7 +3,7 @@ require("dayjs/plugin/utc");
 require("dayjs/plugin/timezone");
 dayjs.extend(require("dayjs/plugin/utc"));
 dayjs.extend(require("dayjs/plugin/timezone"));
-const db1 = require("../database/db"); // Assuming this is your database connection
+const db1 = require("../database/dbForKS"); // Assuming this is your database connection
 
 // --- Logging Function ---
 // This function assumes `db1` is a database connection that supports `execute` or `query`
@@ -257,7 +257,7 @@ exports.progressRequest = async (req, res) => {
 exports.deleteRequest = async (req, res) => {
   const { request_id } = req.params;
   try {
-    // Optionally, retrieve some details about the request before deleting for better log message
+    // Dapatkan info batch untuk log
     const [requestDetails] = await db1.query(
       `SELECT batch_id FROM raman_requests WHERE id = ?`,
       [request_id]
@@ -273,14 +273,20 @@ exports.deleteRequest = async (req, res) => {
       }
     }
 
-    await db1.query("DELETE FROM request_vats WHERE request_id = ?", [
-      request_id,
-    ]);
+    await db1.query("DELETE FROM request_vats WHERE request_id = ?", [request_id]);
     await db1.query("DELETE FROM raman_requests WHERE id = ?", [request_id]);
 
-    // Log the activity
+    // Log the activity (PASTIKAN di-await dan cek error-nya)
     if (req.user?.id) {
-      logActivity(req.user.id, `Deleted Raman request ${request_id} (Batch: ${batchNumber})`, req);
+      try {
+        await logActivity(
+          req.user.id,
+          `Deleted Raman request ${request_id} (Batch: ${batchNumber}, Notes: ${req.body.notes || "-"})`,
+          req
+        );
+      } catch (logErr) {
+        console.warn("Gagal log aktivitas:", logErr.message);
+      }
     }
 
     res.json({ message: "Request deleted" });
@@ -399,7 +405,7 @@ exports.editRequestWithReason = async (req, res) => {
 
 
 exports.editCompleteRequest = async (req, res) => {
-  const { id: request_id } = req.params; // Renamed 'id' to 'request_id' for clarity
+  const { id: request_id } = req.params;
   const { selectedVats, notes } = req.body;
 
   try {
@@ -412,10 +418,17 @@ exports.editCompleteRequest = async (req, res) => {
       return res.status(404).json({ message: "Request not found" });
     }
 
-    // 2. Clear existing vats for this request
+    // 2. Get old vats BEFORE deleting them
+    const oldVatsQuery = await db1.query(
+      `SELECT vat_number FROM request_vats WHERE request_id = ?`,
+      [request_id]
+    );
+    const oldVats = oldVatsQuery[0].map(v => v.vat_number).join(', ');
+
+    // 3. Clear existing vats for this request
     await db1.query("DELETE FROM request_vats WHERE request_id = ?", [request_id]);
 
-    // 3. Insert the new/updated vats
+    // 4. Insert the new/updated vats
     if (selectedVats && Array.isArray(selectedVats) && selectedVats.length > 0) {
       for (let vat of selectedVats) {
         await db1.query(
@@ -425,17 +438,10 @@ exports.editCompleteRequest = async (req, res) => {
       }
     }
 
-    // 4. Log the activity with notes as the reason
+    // 5. Log the activity with notes as the reason
     if (req.user?.id) {
-      const oldVatsQuery = await db1.query(
-        `SELECT vat_number FROM request_vats WHERE request_id = ?`,
-        [request_id]
-      );
-      const oldVats = oldVatsQuery[0].map(v => v.vat_number).join(', '); // Fetch current vats before update for log
-      
       const newVats = selectedVats && Array.isArray(selectedVats) ? selectedVats.join(', ') : '';
-
-      logActivity(
+      await logActivity(
         req.user.id,
         `Edited completed request ${request_id}: Updated vats from [${oldVats}] to [${newVats}] (Reason: ${notes || 'No specific reason provided'})`,
         req
