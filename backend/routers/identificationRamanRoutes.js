@@ -3,6 +3,7 @@ const router = express.Router();
 const ramanController = require("../controllers/identificationRaman");
 const { getBatchListFromSheet } = require("../utils/getDataSpreadsheet");
 const dayjs = require("dayjs");
+const verifyToken = require("../middleware/auth");
 require("dayjs/plugin/utc");
 require("dayjs/plugin/timezone");
 dayjs.extend(require("dayjs/plugin/utc"));
@@ -107,13 +108,13 @@ router.get("/batch-exist", async (req, res) => {
 // GET: All requests for a specific batch
 router.get("/batch/:batch_number", ramanController.getRequestsByBatch);
 
-router.patch("/request/:id/edit-complete",ramanController.editCompleteRequest);
+router.patch("/request/:id/edit-complete",verifyToken,ramanController.editCompleteRequest);
+
+// DELETE: Hapus request raman (by id)
+router.delete('/request/:request_id', verifyToken, ramanController.deleteRequest);
 
 // GET : Raman Data
 router.get("/getDashboardData",ramanController.getRamanMonitoringData);
-
-// DELETE: Hapus request raman (by id)
-router.delete("/request/:request_id", ramanController.deleteRequest);
 
 // PATCH: Progress (QC assign batch, lot, vat_count, etc)
 router.patch("/request/:request_id/progress", ramanController.progressRequest);
