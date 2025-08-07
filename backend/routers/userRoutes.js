@@ -12,7 +12,7 @@ const router = express.Router();
 const path = require("path");
 const fs = require("fs");
 const userController = require("../controllers/userControllers");
-const db = require("../database/index");
+const db = require("../database/db");
 const logController = require("../controllers/logController");
 const monitoringData = require("../controllers/monitoringRuangan");
 
