@@ -322,12 +322,18 @@ exports.loginUser = async (req, res) => {
       return res.status(401).json({ error: "Invalid password" });
     }
 
-    // get user permissions
+    // Dapatkan permissions berdasarkan role user dari role_default_permissions
     const [permissions] = await db.execute(
-      "SELECT permission FROM role_permissions WHERE user_id = ?",
-      [user.id]
+      `SELECT p.permission_key 
+       FROM role_default_permissions rdp
+       JOIN permissions p ON rdp.permission_id = p.id
+       WHERE rdp.role_id = (
+         SELECT id FROM roles WHERE role_key = ?
+       )`,
+      [user.userrole] // Menggunakan userrole sebagai role_key
     );
-    const userPermissions = permissions.map((p) => p.permission);
+    
+    const userPermissions = permissions.map((p) => p.permission_key);
 
     // Cek apakah user harus reset password
     const mustChangePassword = user.last_change_password === null;
@@ -344,7 +350,7 @@ exports.loginUser = async (req, res) => {
         ? `${BACKEND_URL}/${user.img.replace("public/", "")}`
         : null,
       permissions: userPermissions,
-      mustChangePassword, // <-- opsional: juga di payload token, jika perlu
+      mustChangePassword,
     };
 
     // Generate token JWT
@@ -356,8 +362,8 @@ exports.loginUser = async (req, res) => {
     res.cookie("token", token, {
       httpOnly: true,
       secure: false,
-      sameSite: "Strict", // anti-CSRF
-      maxAge: 3600000, // 1 jam (bisa disesuaikan)
+      sameSite: "Strict",
+      maxAge: 3600000, // 1 jam
     });
 
     // Hapus password dari response
@@ -376,7 +382,7 @@ exports.loginUser = async (req, res) => {
         img: user.img
           ? `${BACKEND_URL}/${user.img.replace("public/", "")}`
           : null,
-        mustChangePassword, // <-- tambahkan di response
+        mustChangePassword,
         permissions: userPermissions,
       },
     });
