@@ -265,29 +265,50 @@ router.get("/countQcUser", dynamicRateLimiter, userController.countQCUsers);
 
 // 🔹 Mendapatkan data token
 router.get("/auth/me", verifyToken, async (req, res) => {
-      if (!req.user) return res.status(401).json({ message: "Unauthorized" });
+  if (!req.user) return res.status(401).json({ message: "Unauthorized" });
 
-      try {
-            // Ambil permission user dari database
-            const [permissions] = await db.execute(
-                  "SELECT permission FROM role_permissions WHERE user_id = ?",
-                  [req.user.id]
-            );
-            const userPermissions = permissions.map((p) => p.permission);
+  try {
+    // 1. Ambil role_id dari tabel roles berdasarkan role_key (req.user.userrole)
+    const [roleResult] = await db.execute(
+      "SELECT id FROM roles WHERE role_key = ?",
+      [req.user.userrole] // Misal: req.user.userrole = "admin"
+    );
 
-            res.json({
-                  id: req.user.id,
-                  email: req.user.email,
-                  inisial: req.user.inisial,
-                  jabatan: req.user.jabatan,
-                  nama_lengkap: req.user.nama_lengkap,
-                  userrole: req.user.userrole,
-                  img: req.user.img,
-                  permissions: userPermissions, // <-- tambahan field permissions
-            });
-      } catch (err) {
-            res.status(500).json({ message: "Internal server error" });
-      }
+    if (roleResult.length === 0) {
+      return res.status(404).json({ message: "Role not found" });
+    }
+
+    const roleId = roleResult[0].id;
+
+    // 2. Ambil permission dari role_default_permissions + join dengan tabel permissions
+    const [permissions] = await db.execute(`
+      SELECT 
+        p.permission_key,
+        p.permission_name,
+        p.description,
+        p.category
+      FROM 
+        role_default_permissions rdp
+      JOIN 
+        permissions p ON rdp.permission_id = p.id
+      WHERE 
+        rdp.role_id = ?
+    `, [roleId]);
+
+    res.json({
+      id: req.user.id,
+      email: req.user.email,
+      inisial: req.user.inisial,
+      jabatan: req.user.jabatan,
+      nama_lengkap: req.user.nama_lengkap,
+      userrole: req.user.userrole,
+      img: req.user.img,
+      permissions: permissions, // Mengembalikan detail permission
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Internal server error" });
+  }
 });
 
 // 🔹 Mendapatkan semua pengguna dengan status pending
