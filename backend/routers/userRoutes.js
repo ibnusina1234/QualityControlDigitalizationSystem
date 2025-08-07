@@ -267,12 +267,13 @@ router.get("/countQcUser", dynamicRateLimiter, userController.countQCUsers);
 router.get("/auth/me", verifyToken, async (req, res) => {
   if (!req.user) return res.status(401).json({ message: "Unauthorized" });
 
-  try {
-    // 1. Ambil role_id dari tabel roles berdasarkan role_key (req.user.userrole)
+ try {
+    console.log("Role key:", req.user.userrole); // Debug 2
     const [roleResult] = await db.execute(
       "SELECT id FROM roles WHERE role_key = ?",
-      [req.user.userrole] // Misal: req.user.userrole = "admin"
+      [req.user.userrole]
     );
+    console.log("Role query result:", roleResult);
 
     if (roleResult.length === 0) {
       return res.status(404).json({ message: "Role not found" });
@@ -306,10 +307,12 @@ router.get("/auth/me", verifyToken, async (req, res) => {
       permissions: permissions, // Mengembalikan detail permission
     });
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: "Internal server error" });
-  }
-});
+    console.error("Full error:", err); // Debug 4: Tampilkan full error
+    res.status(500).json({ 
+      message: "Internal server error",
+      error: err.message // Kirim detail error ke frontend (hanya di development)
+    });
+}})
 
 // 🔹 Mendapatkan semua pengguna dengan status pending
 router.get(
