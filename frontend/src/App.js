@@ -92,7 +92,6 @@ function App() {
         <Route path="/Register" element={<Register />} />
         <Route path="/AboutUs" element={<AboutUs />} />
         <Route path="/DashboardInstrument" element={<DashboardInstrument />} />
-        <Route path="/MicrobiologyReport" element={<MicrobiologyReport />} />
         <Route
           path="/DashboardSampelRMPM"
           element={<SampleMonitoringDashboard />}
@@ -137,26 +136,6 @@ function App() {
             <AuthLoader>
               <ProtectedRoute isLoggedIn={isLoggedIn}>
                 <LogbookLabQC userId={userId} />
-              </ProtectedRoute>
-            </AuthLoader>
-          }
-        />
-        <Route
-          path="/MicrobiologyLogbook"
-          element={
-            <AuthLoader>
-              <ProtectedRoute isLoggedIn={isLoggedIn}>
-                <MicrobiologyLogbook />
-              </ProtectedRoute>
-            </AuthLoader>
-          }
-        />
-        <Route
-          path="/LogbookMikroQC"
-          element={
-            <AuthLoader>
-              <ProtectedRoute isLoggedIn={isLoggedIn}>
-                <LaboratoryMicrobiologyForm />
               </ProtectedRoute>
             </AuthLoader>
           }
@@ -320,14 +299,6 @@ function App() {
           }
         />
         <Route
-          path="/masterListMediaDanKuman"
-          element={
-            <AuthLoader>
-              <MediaBacteriaManagement />{" "}
-            </AuthLoader>
-          }
-        />
-        <Route
           path="/SamplingHistory/:cardNumber"
           element={<SamplingHistory />}
         />
@@ -343,14 +314,6 @@ function App() {
               >
                 <ApprovalsSamplingCard />
               </ProtectedRoute>
-            </AuthLoader>
-          }
-        />
-        <Route
-          path="/ApprovalsMicrobiologyReport"
-          element={
-            <AuthLoader>
-              <ApprovalsMicrobiologyReport />{" "}
             </AuthLoader>
           }
         />
