@@ -339,19 +339,20 @@ exports.loginUser = async (req, res) => {
     const mustChangePassword = user.last_change_password === null;
 
     // Buat payload untuk JWT
-    const payload = {
-      id: user.id,
-      email: user.email,
-      userrole: user.userrole,
-      jabatan: user.jabatan,
-      nama_lengkap: user.nama_lengkap,
-      inisial: user.inisial,
-      img: user.img
-        ? `${BACKEND_URL}/${user.img.replace("public/", "")}`
-        : null,
-      permissions: userPermissions,
-      mustChangePassword,
-    };
+    v// Modify the payload creation:
+const payload = {
+  user: {  // Wrap user data in a 'user' object
+    id: user.id,
+    email: user.email,
+    userrole: user.userrole,
+    jabatan: user.jabatan,
+    nama_lengkap: user.nama_lengkap,
+    inisial: user.inisial,
+    img: user.img ? `${BACKEND_URL}/${user.img.replace("public/", "")}` : null,
+    mustChangePassword
+  },
+  permissions: userPermissions  // Keep permissions separate
+};
 
     // Generate token JWT
     const token = jwt.sign(payload, process.env.JWT_SECRET, {

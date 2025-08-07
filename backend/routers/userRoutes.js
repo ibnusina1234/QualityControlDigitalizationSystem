@@ -282,16 +282,16 @@ router.get("/auth/me", verifyToken, async (req, res) => {
     const roleId = roleResult[0].id;
 
     // Query yang dimodifikasi - hanya ambil permission_key
-    const [permissions] = await db.execute(`
-      SELECT 
-        p.permission_key
-      FROM 
-        role_default_permissions rdp
-      JOIN 
-        permissions p ON rdp.permission_id = p.id
-      WHERE 
-        rdp.role_id = ?
-    `, [roleId]);
+   const [permissions] = await db.execute(`
+      SELECT p.permission_key
+      FROM role_default_permissions rdp
+      JOIN permissions p ON rdp.permission_id = p.id
+      WHERE rdp.role_id = ?
+    `, [roleResult[0].id]).catch(err => {
+      console.error("Database Error (permissions):", err);
+      throw new Error("Permissions query failed");
+    });
+
 
     // Ubah hasil query menjadi array of strings
     const permissionKeys = permissions.map(p => p.permission_key);
