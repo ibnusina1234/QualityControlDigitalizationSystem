@@ -267,8 +267,8 @@ router.get("/countQcUser", dynamicRateLimiter, userController.countQCUsers);
 router.get("/auth/me", verifyToken, async (req, res) => {
   if (!req.user) return res.status(401).json({ message: "Unauthorized" });
 
- try {
-    console.log("Role key:", req.user.userrole); // Debug 2
+  try {
+    console.log("Role key:", req.user.userrole);
     const [roleResult] = await db.execute(
       "SELECT id FROM roles WHERE role_key = ?",
       [req.user.userrole]
@@ -281,13 +281,10 @@ router.get("/auth/me", verifyToken, async (req, res) => {
 
     const roleId = roleResult[0].id;
 
-    // 2. Ambil permission dari role_default_permissions + join dengan tabel permissions
+    // Query yang dimodifikasi - hanya ambil permission_key
     const [permissions] = await db.execute(`
       SELECT 
-        p.permission_key,
-        p.permission_name,
-        p.description,
-        p.category
+        p.permission_key
       FROM 
         role_default_permissions rdp
       JOIN 
@@ -295,6 +292,9 @@ router.get("/auth/me", verifyToken, async (req, res) => {
       WHERE 
         rdp.role_id = ?
     `, [roleId]);
+
+    // Ubah hasil query menjadi array of strings
+    const permissionKeys = permissions.map(p => p.permission_key);
 
     res.json({
       id: req.user.id,
@@ -304,15 +304,16 @@ router.get("/auth/me", verifyToken, async (req, res) => {
       nama_lengkap: req.user.nama_lengkap,
       userrole: req.user.userrole,
       img: req.user.img,
-      permissions: permissions, // Mengembalikan detail permission
+      permissions: permissionKeys // Sekarang hanya array of permission_key
     });
   } catch (err) {
-    console.error("Full error:", err); // Debug 4: Tampilkan full error
+    console.error("Full error:", err);
     res.status(500).json({ 
       message: "Internal server error",
-      error: err.message // Kirim detail error ke frontend (hanya di development)
+      error: err.message
     });
-}})
+  }
+});
 
 // 🔹 Mendapatkan semua pengguna dengan status pending
 router.get(
