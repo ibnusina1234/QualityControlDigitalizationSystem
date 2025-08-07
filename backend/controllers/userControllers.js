@@ -120,78 +120,46 @@ exports.registerUser = async (req, res) => {
 // Mendapatkan akses/permissions user berdasarkan user id
 exports.getUserAccess = async (req, res) => {
   try {
-    const { id } = req.params;
+    // Debug: Log user information
+    console.log("User Role:", req.user?.userrole); 
 
-    // Debug parameter ID
-    console.log("Raw ID from params:", id, typeof id);
-
-    // Validasi parameter ID untuk UUID atau INT format
-    if (!id) {
-      return res.status(400).json({ error: "ID user tidak ditemukan" });
+    // Get the user's role key from req.user
+    const userRoleKey = req.user?.userrole;
+    if (!userRoleKey) {
+      return res.status(400).json({ error: "User role not found" });
     }
 
-    // UUID v4 regex
-    const uuidRegex =
-      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-    // Integer positif (tanpa leading zero)
-    const intRegex = /^[1-9][0-9]*$/;
-
-    if (!uuidRegex.test(id) && !intRegex.test(id)) {
-      return res
-        .status(400)
-        .json({
-          error: "Format ID user tidak valid (harus UUID atau integer positif)",
-        });
-    }
-
-    console.log("Getting access for user ID:", id); // Debug log
-
-    // Check if db is properly initialized
-    if (!db) {
-      console.error("Database connection (db) is not initialized");
-      return res.status(500).json({ error: "Database connection error" });
-    }
-
-    // Ambil semua permission user tersebut
-    const [rows] = await db.execute(
-      `SELECT permission FROM role_permissions WHERE user_id = ?`,
-      [id]
+    // First, get the role_id from the roles table based on role_key
+    const [roleResult] = await db.execute(
+      `SELECT id FROM roles WHERE role_key = ?`,
+      [userRoleKey]
     );
 
-    console.log("Query result:", rows); // Debug log
-
-    // Hasil: rows = [{ permission: "audit_trail" }, ...]
-    const access = rows.map((row) => row.permission);
-
-    console.log("Mapped access:", access); // Debug log
-
- res.status(200).json({ success: true, data: { access } });; // { access: [...] }
-  } catch (err) {
-    // Log the full error for debugging
-    console.error("=== ERROR IN getUserAccess ===");
-    console.error("Error message:", err.message);
-    console.error("Error code:", err.code);
-    console.error("Error errno:", err.errno);
-    console.error("SQL State:", err.sqlState);
-    console.error("SQL Message:", err.sqlMessage);
-    console.error("Full error object:", err);
-    console.error("Stack trace:", err.stack);
-    console.error("================================");
-
-    // Return appropriate error based on error type
-    if (err.code === "ER_NO_SUCH_TABLE") {
-      return res
-        .status(500)
-        .json({ error: "Tabel role_permissions tidak ditemukan" });
-    } else if (err.code === "ER_BAD_FIELD_ERROR") {
-      return res.status(500).json({ error: "Kolom tidak valid dalam query" });
-    } else if (err.code === "ECONNREFUSED") {
-      return res
-        .status(500)
-        .json({ error: "Tidak dapat terhubung ke database" });
+    if (roleResult.length === 0) {
+      return res.status(404).json({ error: "Role not found" });
     }
 
-    res.status(500).json({ error: "Gagal mengambil akses user." });
+    const roleId = roleResult[0].id;
+
+    // Then get all permissions associated with this role from role_default_permissions
+    const [permissions] = await db.execute(
+      `SELECT p.permission_key 
+       FROM role_default_permissions rdp
+       JOIN permissions p ON rdp.permission_id = p.id
+       WHERE rdp.role_id = ?`,
+      [roleId]
+    );
+
+    res.json({ 
+      success: true,
+      permissions: permissions.map(p => p.permission_key) 
+    });
+  } catch (err) {
+    console.error("Database Error:", err);
+    res.status(500).json({ 
+      error: "Database operation failed",
+      details: process.env.NODE_ENV === 'development' ? err.message : null
+    });
   }
 };
 
