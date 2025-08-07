@@ -30,4 +30,10 @@ router.put("/edit-home-pages/division-member/:id", homePagesController.updateMem
 router.delete("/edit-home-pages/division-member/:id", homePagesController.deleteMemberDivision);
 router.get("/edit-home-pages/division-member/:divisionId", homePagesController.getDivisionMembers);
 
+// routes/auth.js
+router.get("/test", (req, res) => {
+  console.log("Test endpoint hit");
+  res.json({ message: "Backend working!" });
+});
+
 module.exports = router;

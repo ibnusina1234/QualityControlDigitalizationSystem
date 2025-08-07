@@ -6,6 +6,7 @@ const path = require("path");
 const userRoutes = require("./routers/userRoutes");
 const ksRoutes = require("./routers/cardSamplingRoutes");
 const raman = require("./routers/identificationRamanRoutes");
+const HomePages = require("./routers/homePagesRoutes");
 const bot = require("./routers/telegramBotRoutes");
 const http = require("http");
 const socketIo = require("socket.io");
@@ -83,7 +84,7 @@ app.use("/users", userRoutes);
 app.use("/cards", ksRoutes);
 app.use("/api", uploadRoute);
 app.use("/dashboardRMPM", rmpmRoutes);
-app.use("/Raman", raman);
+app.use("/homeEditing", HomePages);
 app.use("/bot", bot);
 
 // Handle 404 Not Found
