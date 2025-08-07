@@ -27,13 +27,20 @@ import KartuSampling from "./components/KartuSampling";
 import ListSamplingCard from "./pages/ListSamplingCard";
 import EditSamplingCard from "./pages/EditSamplingCard";
 import ApprovalsSamplingCard from "./pages/ApprovalsSamplingCard";
+import ApprovalsMicrobiologyReport from "./pages/ApprovalsMicrobilogyAnalisystReport";
 import UploadToGdrive from "./pages/UploadToGdrive";
 import SamplingHistory from "./components/KartuSamplingHal2";
 import SamplingHistoryForm from "./pages/SamplingHistroyForm";
 import GalleryPDFFormat from "./components/FormatPdfForGalerry";
-import QCTeamEditor from "./components/EditHomePages";
 import RamanDashboard from "./pages/IdentifikasiRaman";
+import LaboratoryMicrobiologyForm from "./pages/InsertLogbookMicrobiology";
+import MediaBacteriaManagement from "./pages/MasterDataMediaDanKuman";
+import MicrobiologyLogbook from "./pages/logbookMicrobiology";
+import MicrobiologyReport from "./components/TemplateChpMikro";
 import RamanMonitoringDashboard from "./pages/DashboardRaman";
+import AdminAccessChecklist from "./components/EditUserAkses";
+import UserAccessSettings from "./pages/setuserRole";
+import EditHomePages from "./components/EditHomePages";
 
 const config = {
   initialColorMode: "light",
@@ -51,11 +58,13 @@ function App() {
   const user = useSelector((state) => state.user.user); // ✅ ambil user dari Redux
   const userId = user?.id;
   const userRole = user?.userrole;
+  const userPermissions = user?.permissions;
 
   const isLoginOrRegisterOrResetPassword =
     location.pathname === "/Login" ||
     location.pathname === "/Register" ||
-    location.pathname === "/request-password-reset";
+    location.pathname === "/request-password-reset" ||
+    location.pathname === "/MicrobiologyReport";
 
   // ✅ Handle Logout
   const handleLogout = useCallback(() => {
@@ -66,7 +75,7 @@ function App() {
   // ✅ Redirect default
   useEffect(() => {
     if (location.pathname === "/") {
-      navigate("/Dashboard");
+      navigate("/Home");
     }
   }, [location.pathname, navigate]);
 
@@ -88,6 +97,7 @@ function App() {
         <Route path="/Register" element={<Register />} />
         <Route path="/AboutUs" element={<AboutUs />} />
         <Route path="/DashboardInstrument" element={<DashboardInstrument />} />
+        <Route path="/MicrobiologyReport" element={<MicrobiologyReport />} />
         <Route
           path="/DashboardSampelRMPM"
           element={<SampleMonitoringDashboard />}
@@ -102,7 +112,11 @@ function App() {
           path="/Edit"
           element={
             <AuthLoader>
-              <ProtectedRoute isLoggedIn={isLoggedIn}>
+              <ProtectedRoute
+                isLoggedIn={isLoggedIn}
+                permission="edit_profil"
+                userPermissions={userPermissions}
+              >
                 <EditProfile userId={userId} />
               </ProtectedRoute>
             </AuthLoader>
@@ -112,7 +126,11 @@ function App() {
           path="/HistoricalPLC"
           element={
             <AuthLoader>
-              <ProtectedRoute isLoggedIn={isLoggedIn}>
+              <ProtectedRoute
+                isLoggedIn={isLoggedIn}
+                permission="historical_temperature_rh"
+                userPermissions={userPermissions}
+              >
                 <HistoricalPLC userId={userId} />
               </ProtectedRoute>
             </AuthLoader>
@@ -124,6 +142,26 @@ function App() {
             <AuthLoader>
               <ProtectedRoute isLoggedIn={isLoggedIn}>
                 <LogbookLabQC userId={userId} />
+              </ProtectedRoute>
+            </AuthLoader>
+          }
+        />
+        <Route
+          path="/MicrobiologyLogbook"
+          element={
+            <AuthLoader>
+              <ProtectedRoute isLoggedIn={isLoggedIn}>
+                <MicrobiologyLogbook />
+              </ProtectedRoute>
+            </AuthLoader>
+          }
+        />
+        <Route
+          path="/LogbookMikroQC"
+          element={
+            <AuthLoader>
+              <ProtectedRoute isLoggedIn={isLoggedIn}>
+                <LaboratoryMicrobiologyForm />
               </ProtectedRoute>
             </AuthLoader>
           }
@@ -142,25 +180,27 @@ function App() {
           path="/AdminPages"
           element={
             <AuthLoader>
-              <ProtectedRoute isLoggedIn={isLoggedIn}>
+              <ProtectedRoute
+                isLoggedIn={isLoggedIn}
+                permission="admin_pages"
+                userPermissions={userPermissions}
+              >
                 <AdminPages />
               </ProtectedRoute>
             </AuthLoader>
           }
         />
         <Route
-          path="/RamanDashboard"
+          path="/UserAccessSettings"
           element={
             <AuthLoader>
-                <RamanDashboard />{" "}
-            </AuthLoader>
-          }
-        />
-         <Route
-          path="/DashboardRamanView"
-          element={
-            <AuthLoader>
-                <RamanMonitoringDashboard />{" "}
+              <ProtectedRoute
+                isLoggedIn={isLoggedIn}
+                permission="user_access_settings"
+                userPermissions={userPermissions}
+              >
+                <UserAccessSettings />
+              </ProtectedRoute>
             </AuthLoader>
           }
         />
@@ -168,8 +208,22 @@ function App() {
           path="/LogActivity"
           element={
             <AuthLoader>
-              <ProtectedRoute isLoggedIn={isLoggedIn}>
+             <ProtectedRoute
+                isLoggedIn={isLoggedIn}
+                permission="log_activity"
+                userPermissions={userPermissions}
+              >
                 <LogActivity />
+              </ProtectedRoute>
+            </AuthLoader>
+          }
+        />
+        <Route
+          path="/EditUserAkses"
+          element={
+            <AuthLoader>
+              <ProtectedRoute isLoggedIn={isLoggedIn}>
+                <AdminAccessChecklist />
               </ProtectedRoute>
             </AuthLoader>
           }
@@ -177,16 +231,12 @@ function App() {
         <Route
           path="/UploadToGdrive"
           element={
-            <ProtectedRoute isLoggedIn={isLoggedIn}>
+            <ProtectedRoute
+                isLoggedIn={isLoggedIn}
+                permission="create_ks"
+                userPermissions={userPermissions}
+              >
               <UploadToGdrive />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/EditHome"
-          element={
-            <ProtectedRoute isLoggedIn={isLoggedIn}>
-              <QCTeamEditor />
             </ProtectedRoute>
           }
         />
@@ -194,7 +244,11 @@ function App() {
           path="/KartuSampling/:id"
           element={
             <AuthLoader>
-              <ProtectedRoute isLoggedIn={isLoggedIn}>
+              <ProtectedRoute
+                isLoggedIn={isLoggedIn}
+                permission="create_ks"
+                userPermissions={userPermissions}
+              >
                 <KartuSampling />
               </ProtectedRoute>
             </AuthLoader>
@@ -204,9 +258,13 @@ function App() {
           path="/ListSamplingCard"
           element={
             <AuthLoader>
-                  <ProtectedRoute isLoggedIn={isLoggedIn}>
+              <ProtectedRoute
+                isLoggedIn={isLoggedIn}
+                permission="list_sampling_card"
+                userPermissions={userPermissions}
+              >
                 <ListSamplingCard />
-                </ProtectedRoute>
+              </ProtectedRoute>
             </AuthLoader>
           }
         />
@@ -214,7 +272,63 @@ function App() {
           path="/EditSamplingCard"
           element={
             <AuthLoader>
-                <EditSamplingCard />{" "}
+                  <ProtectedRoute
+                isLoggedIn={isLoggedIn}
+                permission="create_ks"
+                userPermissions={userPermissions}
+              >
+                <EditSamplingCard />
+              </ProtectedRoute>
+            </AuthLoader>
+          }
+        />
+        <Route
+          path="/RamanDashboard"
+          element={
+            <AuthLoader>
+                  <ProtectedRoute
+                isLoggedIn={isLoggedIn}
+                permission="identification_raman"
+                userPermissions={userPermissions}
+              >
+                <RamanDashboard />
+              </ProtectedRoute>
+            </AuthLoader>
+          }
+        />
+        <Route
+          path="/DashboardRamanView"
+          element={
+            <AuthLoader>
+                  <ProtectedRoute
+                isLoggedIn={isLoggedIn}
+                permission="dashboard_raman"
+                userPermissions={userPermissions}
+              >
+                <RamanMonitoringDashboard />
+              </ProtectedRoute>
+            </AuthLoader>
+          }
+        />
+        <Route
+          path="/EditHomePages"
+          element={
+            <AuthLoader>
+                  <ProtectedRoute
+                isLoggedIn={isLoggedIn}
+            //     permission="settings_home_pages"
+            //     userPermissions={userPermissions}
+              >
+                <EditHomePages />
+              </ProtectedRoute>
+            </AuthLoader>
+          }
+        />
+        <Route
+          path="/masterListMediaDanKuman"
+          element={
+            <AuthLoader>
+              <MediaBacteriaManagement />{" "}
             </AuthLoader>
           }
         />
@@ -227,7 +341,21 @@ function App() {
           path="/ApprovalsSamplingCard"
           element={
             <AuthLoader>
-                <ApprovalsSamplingCard />{" "}
+                  <ProtectedRoute
+                isLoggedIn={isLoggedIn}
+                permission="create_ks"
+                userPermissions={userPermissions}
+              >
+                <ApprovalsSamplingCard />
+              </ProtectedRoute>
+            </AuthLoader>
+          }
+        />
+        <Route
+          path="/ApprovalsMicrobiologyReport"
+          element={
+            <AuthLoader>
+              <ApprovalsMicrobiologyReport />{" "}
             </AuthLoader>
           }
         />
@@ -236,7 +364,11 @@ function App() {
           path="/KelolaUser"
           element={
             <AuthLoader>
-              <ProtectedRoute isLoggedIn={isLoggedIn}>
+              <ProtectedRoute
+                isLoggedIn={isLoggedIn}
+                permission="user_management"
+                userPermissions={userPermissions}
+              >
                 <KelolaUser />
               </ProtectedRoute>
             </AuthLoader>

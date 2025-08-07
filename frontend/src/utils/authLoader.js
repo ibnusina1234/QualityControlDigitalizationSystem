@@ -21,11 +21,11 @@ const AuthLoader = ({ children }) => {
           id: res.data.id,
           email: res.data.email,
           inisial: res.data.inisial,
+          jabatan:res.data.jabatan,
           nama_lengkap: res.data.nama_lengkap,
           userrole: res.data.userrole,
           img: res.data.img,
-          departement: res.data.departement,
-          jabatan: res.data.jabatan,
+          permissions: res.data.permissions,
         }));
 
         setAuthorized(true);

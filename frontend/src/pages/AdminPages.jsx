@@ -1,6 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import { useSelector } from "react-redux";
-import { UserCog, FileText, Settings, Bell } from "lucide-react";
+import { UserCog, FileText, Settings, House,UserRoundPlus } from "lucide-react";
 import { useColorModeValue } from "@chakra-ui/react";
 
 const adminMenus = [
@@ -19,33 +19,33 @@ const adminMenus = [
     roleRequired: ["admin", "super admin"]
   },
   {
-    title: "Pengaturan",
-    description: "Ubah konfigurasi sistem.",
+    title: "Edit Role Akses",
+    description: "Ubah user akses berdasarkan Role.",
     icon: <Settings className="h-8 w-8 text-yellow-500" />,
-    path: "/EditHome",
-     roleRequired: ["admin", "super admin"],
-     jabatanRequired : ["ADMIN QC"]
+    path: "/UserAccessSettings",
+    roleRequired: ["admin", "super admin"],
+    // Tidak ada roleRequired berarti semua admin/super admin bisa lihat
   },
-//   {
-//     title: "Notifikasi",
-//     description: "Kelola notifikasi dan email masuk.",
-//     icon: <Bell className="h-8 w-8 text-red-500" />,
-//     path: "/admin/notifications",
-//     // Tidak ada roleRequired berarti semua admin/super admin bisa lihat
-//   },
-//     {
-//     title: "Edit Page Content",
-//     description: "Ubah konten di Home.",
-//     icon: <Settings className="h-8 w-8 text-yellow-500" />,
-//     path: "/EditHome",
-//   },
+  {
+    title: "Registrasi User",
+    description: "Registrasi user baru oleh Admin.",
+    icon: <UserRoundPlus className="h-8 w-8 text-red-500" />,
+    path: "/Register",
+    // Tidak ada roleRequired berarti semua admin/super admin bisa lihat
+  },
+  {
+    title: "Settings Home Pages",
+    description: "Merubah pengaturan dan tampilan home page.",
+    icon: <House className="h-8 w-8 text-red-500" />,
+    path: "/EditHomePages",
+    // Tidak ada roleRequired berarti semua admin/super admin bisa lihat
+  },
 ];
 
 export default function AdminPages() {
   const navigate = useNavigate();
   const user = useSelector((state) => state.user.user); // Ambil user dari Redux
-  const userRole = user?.userrole; 
-  const userJabatan =user?.jabatan;
+  const userRole = user?.userrole; // Ambil role dari user
 
   // Chakra color mode values
   const bgCard = useColorModeValue("bg-white", "bg-gray-800");
@@ -61,7 +61,7 @@ export default function AdminPages() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {adminMenus.map((menu, index) => {
           // Jika menu punya roleRequired dan userRole tidak ada di array tsb, maka hide menu
-          if ((menu.roleRequired && !menu.roleRequired.includes(userRole)) || (menu.jabatanRequired && !menu.jabatanRequired.includes(userJabatan))) {
+          if (menu.roleRequired && !menu.roleRequired.includes(userRole)) {
             return null;
           }
 

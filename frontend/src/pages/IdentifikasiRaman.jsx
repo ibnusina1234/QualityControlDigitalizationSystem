@@ -16,7 +16,6 @@ const API_BASE = process.env.REACT_APP_API_BASE_URL;
 const RamanDashboard = () => {
       const userRedux = useSelector((state) => state.user.user);
       const inisial = userRedux?.inisial;
-      const emailForRequestRaman = (userRedux?.userrole === "admin", userRedux?.jabatan === "SUPERVISOR WH" || userRedux?.jabatan === "INSPEKTOR QC");
       const idOperator = userRedux?.id;
       const idInspektor = userRedux?.id;
       const isAdminAndInspektor = (
@@ -24,11 +23,13 @@ const RamanDashboard = () => {
             userRedux?.userrole === "super admin" ||
             userRedux?.jabatan === "INSPEKTOR QC"
       );
+      // eslint-disable-next-line no-unused-vars
       const isAdmin = userRedux?.userrole === "admin" || userRedux?.userrole === "super admin";
 
       // For modal delete
       const [deleteModalOpen, setDeleteModalOpen] = useState(false);
       const [deleteTarget, setDeleteTarget] = useState(null); // request/onProgress item
+      // eslint-disable-next-line no-unused-vars
       const [deleteLoading, setDeleteLoading] = useState(false);
       const [deleteType, setDeleteType] = useState(""); // "request" or "progress"
 
@@ -45,6 +46,8 @@ const RamanDashboard = () => {
       const [batchNumbers, setBatchNumbers] = useState(['']);
       const [vatCounts, setVatCounts] = useState(['']);
       const [tanggalTimbang, setTanggalTimbang] = useState(['']);
+      // eslint-disable-next-line no-unused-vars
+      const [isLoading, setIsLoading] = useState(true);
       const [requests, setRequests] = useState([]);
       const [onProgress, setOnProgress] = useState([]);
       const [completed, setCompleted] = useState([]);
@@ -114,6 +117,7 @@ const RamanDashboard = () => {
                         timestamp: r.requested_at,
                         operator: r.operator_name,
                         vatCount: r.vat_count,
+                        tanggal_timbang: r.tanggal_timbang,
                         batch_number: r.batch_number
                   })));
                   setOnProgress(all.filter(r => r.status === 'progress').map(r => ({
@@ -174,6 +178,7 @@ const RamanDashboard = () => {
       const handleEditComplete = async (id, vats, notes) => {
             setEditLoading(true);
             try {
+                  // eslint-disable-next-line no-unused-vars
                   const res = await axios.patch(
                         `${API_BASE}/Raman/request/${id}/edit-complete`,
                         {
@@ -243,6 +248,10 @@ const RamanDashboard = () => {
             const newVatCounts = [...vatCounts];
             newVatCounts[index] = '';
             setVatCounts(newVatCounts);
+            //  Reset tanggalTimbang as well (optional, for clarity)
+            const newTanggalTimbang = [...tanggalTimbang];
+            newTanggalTimbang[index] = '';
+            setTanggalTimbang(newTanggalTimbang);
 
             // If value is not empty, fetch batch options
             if (value.trim()) {
@@ -314,17 +323,32 @@ const RamanDashboard = () => {
             });
       };
 
+      const handleTanggalTimbangInput = (index, value) => {
+            setTanggalTimbang(prev => {
+                  const arr = [...prev];
+                  arr[index] = value;
+                  return arr;
+            });
+      };
+
+
       // Call inspector: send batch_number & vat_count from dropdown/manual
       const createRequest = async () => {
+            setIsLoading(true);
             const requestsToSend = materials
                   .map((m, i) => ({
                         material: m,
                         batch_number: batchNumbers[i],
-                        vat_count: vatCounts[i]
+                        vat_count: vatCounts[i],
+                        tanggal_timbang: tanggalTimbang[i]
                   }))
                   .filter(x => x.material.trim() && x.batch_number && x.vat_count && !isNaN(Number(x.vat_count)));
 
-            if (requestsToSend.length === 0 || !inisial) return;
+            if (requestsToSend.length === 0 || !inisial) {
+                  alert("Pastikan semua material terisi dengan benar dan nama operator tidak kosong.");
+                  setIsLoading(false);
+                  return;
+            }
 
             try {
                   await Promise.all(
@@ -334,6 +358,7 @@ const RamanDashboard = () => {
                                     operator_id: idOperator,
                                     batch_number: data.batch_number,
                                     vat_count: Number(data.vat_count),
+                                    tanggal_timbang: data.tanggal_timbang || null,
                                     requested_at: new Date(new Date().toISOString())
                               })
                         )
@@ -370,6 +395,7 @@ const RamanDashboard = () => {
                   setBatchOptions([[]]);
                   setBatchNumbers(['']);
                   setVatCounts(['']);
+                  setTanggalTimbang(['']);
                   fetchRequests();
                   alert('Request berhasil dikirim ke QC Inspector!');
             } catch (err) {
@@ -595,7 +621,7 @@ const RamanDashboard = () => {
                                     <div className={`${cardBg} rounded-xl ${cardShadow} p-6 mb-6`}>
                                           <div className="flex items-center justify-between">
                                                 <div>
-                                                      <h1 className={`text-3xl font-bold ${textMain}`}>Dashboard Warehouse</h1>
+                                                      <h1 className={`text-3xl font-bold ${textMain}`}>Dashboard Request</h1>
                                                       <p className={`${textSecondary} mt-1`}>Identifikasi Raman - Request Material</p>
                                                 </div>
                                                 <button
@@ -617,7 +643,7 @@ const RamanDashboard = () => {
                                                       {/* Operator Name Input */}
                                                       <div className="mb-6">
                                                             <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
-                                                                  Nama Operator Warehouse
+                                                                  Nama
                                                             </label>
                                                             <input
                                                                   type="text"
@@ -679,6 +705,13 @@ const RamanDashboard = () => {
                                                                                           (batchOptions[idx] || []).some(b => b.batch_number === batchNumbers[idx])
                                                                                     }
                                                                               />
+                                                                              <input
+                                                                                    type="datetime-local"
+                                                                                    value={tanggalTimbang[idx] || ''}
+                                                                                    onChange={e => handleTanggalTimbangInput(idx, e.target.value)}
+                                                                                    placeholder="Masukan Waktu Penimbangan"
+                                                                                    className={`w-full px-4 py-3 mt-3 border ${borderInput} ${inputBg} ${inputText} rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all`}
+                                                                              />
                                                                               {(!batchOptions[idx] || batchOptions[idx].length === 0) &&
                                                                                     <p className="text-xs text-yellow-500 mt-1">Tidak ada batch "Pending" untuk material ini, silakan input manual.</p>
                                                                               }
@@ -709,7 +742,7 @@ const RamanDashboard = () => {
                                                                   ) || !inisial}
                                                                   className={`px-6 py-3 ${btnPrimary} text-white rounded-lg disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors font-medium`}
                                                             >
-                                                                  Call Inspektor QC
+                                                                  Booking Jadwal
                                                             </button>
                                                       </div>
                                                 </div>
@@ -735,13 +768,14 @@ const RamanDashboard = () => {
                                                                               </div>
                                                                               <div className="flex-1">
                                                                                     <p className={`text-xs ${textSecondary}`}>
-                                                                                          Tanggal Timbang: {toLocaleID(request.tanggalTimbang)}
+                                                                                          Tanggal Timbang: {toLocaleID(new Date(request.tanggal_timbang))}
                                                                                     </p>
+
                                                                                     <p className={`font-medium ${textMain} text-sm`}>
                                                                                           Material: {request.materials.join(', ')}
                                                                                     </p>
                                                                                     <p className={`text-xs ${textSecondary} mt-1`}>
-                                                                                          Operator: {request.operator}
+                                                                                          Dibuat Oleh: {request.operator}
                                                                                     </p>
                                                                                     <p className={`text-xs ${textSecondary}`}>
                                                                                           Batch: {request.batch_number}
@@ -779,7 +813,7 @@ const RamanDashboard = () => {
                                                       onClick={() => setPages('warehouse')}
                                                       className={`px-4 py-2 ${btnPrimaryQC} text-white rounded-lg transition-colors`}
                                                 >
-                                                      Switch to Warehouse View
+                                                      Switch to Request View
                                                 </button>
                                           </div>
                                     </div>
@@ -816,7 +850,7 @@ const RamanDashboard = () => {
                                                                         {request.materials.join(', ')}
                                                                   </p>
                                                                   <p className="text-sm text-blue-600 font-medium mt-1">
-                                                                        Operator: {request.operator}
+                                                                        Dibuat Oleh: {request.operator}
                                                                   </p>
                                                                   <p className={`text-xs ${textSecondary} mt-1`}>
                                                                         Batch: {request.batch_number}
@@ -860,7 +894,7 @@ const RamanDashboard = () => {
                                                                               Vat: {item.vatCount}
                                                                         </p>
                                                                         <p className="text-xs text-blue-600 font-medium mb-3">
-                                                                              Operator: {item.operator}
+                                                                              dibuat Oleh: {item.operator}
                                                                         </p>
                                                                         <p className="text-xs text-purple-600 font-medium mb-2">
                                                                               Batch: {item.batch_number || '-'}
@@ -994,7 +1028,7 @@ const RamanDashboard = () => {
                                                                               Vat: {getTotalIdentifiedForBatch(item.batch_number, item.material_id)} of {item.vatCount} identified
                                                                         </p>
                                                                         <p className="text-xs text-blue-600 font-medium">
-                                                                              Operator: {item.operator}
+                                                                              Dibuat Oleh: {item.operator}
                                                                         </p>
                                                                         <p className="text-xs text-gray-500">
                                                                               {item.completedAt ? dayjs(item.completedAt).add(7, 'hour').format('DD MMM YYYY HH:mm:ss') : ''}
@@ -1049,7 +1083,7 @@ const RamanDashboard = () => {
                                                                         </div>
                                                                         <div>
                                                                               <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
-                                                                                    Operator:
+                                                                                    Dibuat Oleh:
                                                                               </label>
                                                                               <p className="text-blue-600 dark:text-blue-200 font-medium bg-blue-50 dark:bg-blue-900 p-3 rounded-lg">
                                                                                     {currentRequest?.operator}
@@ -1204,7 +1238,7 @@ const RamanDashboard = () => {
                                                             </div>
                                                             <div>
                                                                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">
-                                                                        Operator Warehouse:
+                                                                        Dibuat Oleh:
                                                                   </label>
                                                                   <p className="text-blue-600 dark:text-blue-200 font-medium">{selectedComplete.operator}</p>
                                                             </div>

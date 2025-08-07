@@ -2,8 +2,8 @@ const bcrypt = require("bcrypt");
 const crypto = require("crypto");
 const nodemailer = require("nodemailer");
 const moment = require("moment-timezone");
-const db = require("../database/dbForKS");
-const db1 = require("../database/db");
+const db = require("../database/db");
+const db1 = require("../database/dbForKS");
 const saltRounds = 10;
 require("dotenv").config();
 const logActivity = require("../helpers/logger");
@@ -34,8 +34,20 @@ exports.registerUser = async (req, res) => {
         .json({ error: "Invalid input", details: errors.array() });
     }
 
-    const { email, nama_lengkap, inisial, departement, jabatan, password } =
+    const { email, nama_lengkap, inisial, departement, jabatan, password,role } =
       req.body;
+
+    // Ambil permissions dari req.body (jika FormData, perlu parse JSON)
+    let permissions = [];
+    if (req.body.permissions) {
+      try {
+        permissions = JSON.parse(req.body.permissions);
+      } catch (e) {
+        permissions = Array.isArray(req.body.permissions)
+          ? req.body.permissions
+          : [req.body.permissions];
+      }
+    }
     const imgPath = req.file ? `public/uploads/${req.file.filename}` : null;
 
     if (process.env.NODE_ENV !== "production") {
@@ -45,16 +57,19 @@ exports.registerUser = async (req, res) => {
         inisial,
         departement,
         jabatan,
+        role,
         imgPath,
+        permissions,
       });
     }
 
     const hash = await bcrypt.hash(password, saltRounds);
     const userId = uuidv4();
 
-    const [result] = await db1.execute(
-      `INSERT INTO user (id, email, nama_lengkap, inisial, departement, jabatan, password, img, status) 
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'Pending')`,
+    // Insert user ke tabel user
+    const [result] = await db.execute(
+      `INSERT INTO user (id, email, nama_lengkap, inisial, departement, jabatan, password, userrole, img, status) 
+       VALUES (?, ?, ?, ?, ?, ?, ?,?, ?, 'Active')`,
       [
         userId,
         email,
@@ -63,9 +78,12 @@ exports.registerUser = async (req, res) => {
         departement,
         jabatan,
         hash,
+        role,
         imgPath,
       ]
     );
+
+
 
     if (process.env.NODE_ENV !== "production") {
       console.log("User berhasil didaftarkan ke database:", result);
@@ -83,7 +101,7 @@ exports.registerUser = async (req, res) => {
     }
 
     res.status(201).json({
-      message: "User registered! Waiting for admin approval.",
+      message: "User registered!.",
     });
 
     logActivity(nama_lengkap, "Register", req).catch((logErr) => {
@@ -99,6 +117,108 @@ exports.registerUser = async (req, res) => {
   }
 };
 
+// Mendapatkan akses/permissions user berdasarkan user id
+exports.getUserAccess = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // Debug parameter ID
+    console.log("Raw ID from params:", id, typeof id);
+
+    // Validasi parameter ID untuk UUID atau INT format
+    if (!id) {
+      return res.status(400).json({ error: "ID user tidak ditemukan" });
+    }
+
+    // UUID v4 regex
+    const uuidRegex =
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    // Integer positif (tanpa leading zero)
+    const intRegex = /^[1-9][0-9]*$/;
+
+    if (!uuidRegex.test(id) && !intRegex.test(id)) {
+      return res
+        .status(400)
+        .json({
+          error: "Format ID user tidak valid (harus UUID atau integer positif)",
+        });
+    }
+
+    console.log("Getting access for user ID:", id); // Debug log
+
+    // Check if db is properly initialized
+    if (!db) {
+      console.error("Database connection (db) is not initialized");
+      return res.status(500).json({ error: "Database connection error" });
+    }
+
+    // Ambil semua permission user tersebut
+    const [rows] = await db.execute(
+      `SELECT permission FROM role_permissions WHERE user_id = ?`,
+      [id]
+    );
+
+    console.log("Query result:", rows); // Debug log
+
+    // Hasil: rows = [{ permission: "audit_trail" }, ...]
+    const access = rows.map((row) => row.permission);
+
+    console.log("Mapped access:", access); // Debug log
+
+ res.status(200).json({ success: true, data: { access } });; // { access: [...] }
+  } catch (err) {
+    // Log the full error for debugging
+    console.error("=== ERROR IN getUserAccess ===");
+    console.error("Error message:", err.message);
+    console.error("Error code:", err.code);
+    console.error("Error errno:", err.errno);
+    console.error("SQL State:", err.sqlState);
+    console.error("SQL Message:", err.sqlMessage);
+    console.error("Full error object:", err);
+    console.error("Stack trace:", err.stack);
+    console.error("================================");
+
+    // Return appropriate error based on error type
+    if (err.code === "ER_NO_SUCH_TABLE") {
+      return res
+        .status(500)
+        .json({ error: "Tabel role_permissions tidak ditemukan" });
+    } else if (err.code === "ER_BAD_FIELD_ERROR") {
+      return res.status(500).json({ error: "Kolom tidak valid dalam query" });
+    } else if (err.code === "ECONNREFUSED") {
+      return res
+        .status(500)
+        .json({ error: "Tidak dapat terhubung ke database" });
+    }
+
+    res.status(500).json({ error: "Gagal mengambil akses user." });
+  }
+};
+
+//edit user akses
+exports.updateUserAccess = async (req, res) => {
+  const { id } = req.params;
+  const { access } = req.body; // access = array of string
+  if (!Array.isArray(access)) {
+    return res.status(400).json({ error: "Access harus array" });
+  }
+  try {
+    // Hapus akses lama
+    await db.execute("DELETE FROM role_permissions WHERE user_id = ?", [id]);
+    // Insert akses baru (bulk insert)
+    if (access.length > 0) {
+      const values = access.map((a) => [id, a]);
+      await db.query(
+        "INSERT INTO role_permissions (user_id, permission) VALUES ?",
+        [values]
+      );
+    }
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: "Gagal update akses user." });
+  }
+};
+
 //Check Email agar tidak ada email ganda
 exports.checkEmail = async (req, res) => {
   try {
@@ -108,7 +228,7 @@ exports.checkEmail = async (req, res) => {
       return res.status(400).json({ error: "Email is required" });
     }
 
-    const [rows] = await db1.execute(
+    const [rows] = await db.execute(
       "SELECT COUNT(*) AS count FROM user WHERE email = ?",
       [email]
     );
@@ -138,8 +258,8 @@ exports.checkEmail = async (req, res) => {
 // Fungsi untuk mengirim email notifikasi ke admin
 const getAdminEmails = async () => {
   try {
-    const [rows] = await db1.execute(
-      "SELECT email FROM user WHERE userrole IN (?, ?)",
+    const [rows] = await db.execute(
+      "SELECT email FROM user WHERE userrole = ?",
       ["admin", "super admin"]
     );
 
@@ -211,7 +331,7 @@ exports.loginUser = async (req, res) => {
     const { email, password } = req.body;
 
     // Query database untuk mencari user berdasarkan email
-    const [users] = await db1.execute("SELECT * FROM user WHERE email = ?", [
+    const [users] = await db.execute("SELECT * FROM user WHERE email = ?", [
       email,
     ]);
 
@@ -221,9 +341,11 @@ exports.loginUser = async (req, res) => {
 
     const user = users[0];
 
-    // Pastikan status user adalah 'Accept' sebelum melanjutkan
-    if (user.status !== "Accept") {
-      return res.status(403).json({ error: "User is not approved" });
+    // Pastikan status user adalah 'Active' sebelum melanjutkan
+    if (user.status !== "Active") {
+      return res
+        .status(403)
+        .json({ error: "User is not Active. Please Contact Administrator" });
     }
 
     // Cek password
@@ -231,6 +353,16 @@ exports.loginUser = async (req, res) => {
     if (!isMatch) {
       return res.status(401).json({ error: "Invalid password" });
     }
+
+    // get user permissions
+    const [permissions] = await db.execute(
+      "SELECT permission FROM role_permissions WHERE user_id = ?",
+      [user.id]
+    );
+    const userPermissions = permissions.map((p) => p.permission);
+
+    // Cek apakah user harus reset password
+    const mustChangePassword = user.last_change_password === null;
 
     // Buat payload untuk JWT
     const payload = {
@@ -240,10 +372,11 @@ exports.loginUser = async (req, res) => {
       jabatan: user.jabatan,
       nama_lengkap: user.nama_lengkap,
       inisial: user.inisial,
-      departement: user.departement,
       img: user.img
         ? `${BACKEND_URL}/${user.img.replace("public/", "")}`
         : null,
+      permissions: userPermissions,
+      mustChangePassword, // <-- opsional: juga di payload token, jika perlu
     };
 
     // Generate token JWT
@@ -270,10 +403,14 @@ exports.loginUser = async (req, res) => {
 
     res.json({
       message: "Login successful",
-      user: userWithoutPassword, // Tidak perlu kirim token di response!
-      img: user.img
-        ? `${BACKEND_URL}/${user.img.replace("public/", "")}`
-        : null,
+      user: {
+        ...userWithoutPassword,
+        img: user.img
+          ? `${BACKEND_URL}/${user.img.replace("public/", "")}`
+          : null,
+        mustChangePassword, // <-- tambahkan di response
+        permissions: userPermissions,
+      },
     });
   } catch (err) {
     if (process.env.NODE_ENV !== "production") {
@@ -341,7 +478,7 @@ exports.getProfile = async (req, res) => {
   }
 
   try {
-    const [results] = await db1.execute(
+    const [results] = await db.execute(
       "SELECT id,email, nama_lengkap, inisial, departement, jabatan, userrole, img FROM user WHERE id = ?",
       [userId]
     );
@@ -351,6 +488,36 @@ exports.getProfile = async (req, res) => {
     }
     res.json(results[0]);
   } catch (err) {
+    if (process.env.NODE_ENV !== "production") {
+      console.error("Database error:", err?.message || err);
+    }
+    res.status(500).json({ error: "Internal server error" });
+  }
+};
+
+//get userrole
+exports.getUserRole = async (req, res) => {
+  // Ambil userId dari parameter id yang dikirim oleh frontend
+  const userId = req.params.id;
+  if (!userId) {
+    return res.status(400).json({ error: "User ID is required" });
+  }
+
+  try {
+    const [results] = await db.execute(
+      "SELECT userrole FROM user WHERE id = ?",
+      [userId]
+    );
+
+    // Periksa jika tidak ada hasil ditemukan
+    if (results.length === 0) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    // Kembalikan hanya userrole
+    res.json({ userrole: results[0].userrole });
+  } catch (err) {
+    // Log error jika bukan dalam mode produksi
     if (process.env.NODE_ENV !== "production") {
       console.error("Database error:", err?.message || err);
     }
@@ -402,7 +569,7 @@ exports.updateProfile = async (req, res) => {
     sql += " WHERE id = ?";
     params.push(userId);
 
-    const [result] = await db1.execute(sql, params);
+    const [result] = await db.execute(sql, params);
 
     if (result.affectedRows === 0) {
       return res.status(404).json({ error: "User tidak ditemukan." });
@@ -428,7 +595,7 @@ exports.updateProfile = async (req, res) => {
 
 // Controller: Update userrole saja (oleh admin/super admin)
 exports.updateUserRole = async (req, res) => {
-  const { id } = req.params; // id user yang akan diupdate
+  const { id } = req.params;
   const { userrole } = req.body;
   const requesterRole = req.user.userrole; // role dari yang melakukan request (harus dari middleware verifyToken)
 
@@ -438,18 +605,22 @@ exports.updateUserRole = async (req, res) => {
   if (!userrole) {
     return res.status(400).json({ error: "Field userrole wajib diisi." });
   }
-  if (!["admin", "super admin", "user"].includes(userrole)) {
-    return res.status(400).json({ error: "userrole tidak valid." });
-  }
   // Hanya admin atau super admin yang boleh update userrole
   if (!(requesterRole === "admin" || requesterRole === "super admin")) {
-    return res
-      .status(403)
-      .json({ error: "Tidak diizinkan mengganti role user." });
+    return res.status(403).json({ error: "Tidak diizinkan mengganti role user." });
   }
 
   try {
-    const [result] = await db1.execute(
+    // Ambil daftar role_key dari tabel roles
+    const [roles] = await db.execute("SELECT role_key FROM roles");
+    const allowedRoles = roles.map(r => r.role_key);
+
+    // Validasi userrole dengan daftar role_key
+    if (!allowedRoles.includes(userrole)) {
+      return res.status(400).json({ error: "userrole tidak valid." });
+    }
+
+    const [result] = await db.execute(
       "UPDATE user SET userrole = ? WHERE id = ?",
       [userrole, id]
     );
@@ -482,7 +653,7 @@ exports.checkRole = (roles) => {
     }
 
     try {
-      const [results] = await db1.execute(
+      const [results] = await db.execute(
         "SELECT userrole FROM user WHERE id = ?",
         [userId]
       );
@@ -507,20 +678,19 @@ exports.checkRole = (roles) => {
 
 exports.countQCUsers = async (req, res) => {
   try {
-    const [rows] = await db1.execute(
+    const [rows] = await db.query(
       "SELECT COUNT(*) AS count FROM user WHERE departement = ?",
       ["QC"]
     );
 
     return res.status(200).json({
       success: true,
-      count: rows[0]?.count || 0,
+      count: rows[0].count,
     });
   } catch (error) {
     if (process.env.NODE_ENV !== "production") {
       console.error("Error counting QC users:", error?.message || error);
     }
-
     return res.status(500).json({
       success: false,
       message: "Terjadi kesalahan pada server",
@@ -535,7 +705,7 @@ exports.requestPasswordReset = async (req, res) => {
   if (!email) return res.status(400).json({ error: "Email is required" });
 
   try {
-    const [results] = await db1.query("SELECT * FROM user WHERE email = ?", [
+    const [results] = await db.query("SELECT * FROM user WHERE email = ?", [
       email,
     ]);
     if (results.length === 0)
@@ -548,7 +718,7 @@ exports.requestPasswordReset = async (req, res) => {
       .add(1, "hour")
       .format("YYYY-MM-DD HH:mm:ss");
 
-    await db1.query(
+    await db.query(
       "UPDATE user SET resetToken = ?, resetTokenExpiry = ? WHERE email = ?",
       [resetToken, resetTokenExpiry, email]
     );
@@ -585,32 +755,36 @@ exports.requestPasswordReset = async (req, res) => {
 // Reset Password
 exports.resetPassword = async (req, res) => {
   const { email, token, newPassword } = req.body;
-  if (!email || !token || !newPassword) {
-    return res.status(400).json({ error: "All fields are required" });
+  if (!email || !newPassword) {
+    return res.status(400).json({ error: "Email and new password are required" });
   }
 
   try {
-    const [results] = await db1.query(
-      "SELECT * FROM user WHERE email = ? AND resetToken = ? AND resetTokenExpiry > NOW()",
-      [email, token]
-    );
-    if (results.length === 0)
-      return res.status(400).json({ error: "Invalid or expired token" });
-
-    const user = results[0];
-
-    // ⛔️ Cek apakah newPassword sama dengan password lama
-    const isSamePassword = await bcrypt.compare(newPassword, user.password);
-    if (isSamePassword) {
-      return res.status(400).json({
-        error: "New password cannot be the same as the current password.",
-      });
+    let user;
+    // Jika ada token, berarti reset via forgot password
+    if (token) {
+      const [results] = await db.query(
+        "SELECT * FROM user WHERE email = ? AND resetToken = ? AND resetTokenExpiry > NOW()",
+        [email, token]
+      );
+      if (results.length === 0)
+        return res.status(400).json({ error: "Invalid or expired token" });
+      user = results[0];
+    } else {
+      // Reset password tanpa token (misal: login pertama kali)
+      const [results] = await db.query(
+        "SELECT * FROM user WHERE email = ?",
+        [email]
+      );
+      if (results.length === 0)
+        return res.status(404).json({ error: "User not found" });
+      user = results[0];
     }
 
     const hashedPassword = await bcrypt.hash(newPassword, saltRounds);
 
-    await db1.query(
-      "UPDATE user SET password = ?, resetToken = NULL, resetTokenExpiry = NULL WHERE email = ?",
+    await db.query(
+      "UPDATE user SET password = ?, resetToken = NULL, resetTokenExpiry = NULL, last_change_password = NOW() WHERE email = ?",
       [hashedPassword, email]
     );
 
@@ -630,46 +804,11 @@ exports.resetPassword = async (req, res) => {
   }
 };
 
-// Get Application Data
-exports.getData = async (req, res) => {
-  try {
-    const [results] = await db1.query(
-      "SELECT newsData, partOfUsData, organizationStructure FROM app_data WHERE id = 1"
-    );
-
-    if (results.length === 0) {
-      return res.status(404).json({ error: "Data not found" });
-    }
-
-    // Log the application data retrieval
-    if (req.user?.id) {
-      logActivity(req.user.id, "Retrieve Application Data", req).catch(
-        (logErr) => {
-          if (process.env.NODE_ENV !== "production") {
-            console.warn("Gagal log aktivitas:", logErr.message);
-          }
-        }
-      );
-    }
-
-    const data = results[0];
-    res.json({
-      newsData: JSON.parse(data.newsData),
-      partOfUsData: JSON.parse(data.partOfUsData),
-      organizationStructure: JSON.parse(data.organizationStructure),
-    });
-  } catch (err) {
-    if (process.env.NODE_ENV !== "production") {
-      console.error("Error getting app data:", err?.message || err);
-    }
-    res.status(500).json({ error: "Internal server error" });
-  }
-};
 
 // Fetch Pending Users
 exports.getPendingUsers = async (req, res) => {
   try {
-    const [results] = await db1.query(
+    const [results] = await db.query(
       "SELECT * FROM user WHERE status = 'Pending'"
     );
     res.json(results);
@@ -686,7 +825,7 @@ exports.getUserById = async (req, res) => {
   const { userId } = req.params;
 
   try {
-    const [results] = await db1.query("SELECT * FROM user WHERE id = ?", [
+    const [results] = await db.query("SELECT * FROM user WHERE id = ?", [
       userId,
     ]);
 
@@ -723,7 +862,7 @@ exports.updateUserStatus = async (req, res) => {
   }
 
   try {
-    const [result] = await db1.query(
+    const [result] = await db.query(
       "UPDATE user SET status = ?, userrole = ?, updated_at = ?, updated_by = ? WHERE id = ?",
       [status, userRole, updated_at, updated_by, parseInt(id)]
     );
@@ -754,7 +893,7 @@ exports.updateUserStatus = async (req, res) => {
 // Get All Users
 exports.getAllUsers = async (req, res) => {
   try {
-    const [results] = await db1.query("SELECT * FROM user");
+    const [results] = await db.query("SELECT * FROM user");
 
     // Log the activity of viewing all users
     if (req.user?.id) {
@@ -776,27 +915,54 @@ exports.getAllUsers = async (req, res) => {
 
 // Delete User by ID
 exports.deleteUserById = async (req, res) => {
-  const { id } = req.params;
   try {
-    await db1.query("DELETE FROM user WHERE id = ?", [id]);
+    const { id } = req.params;
+    const currentUser = req.user;
 
-    // Log the user deletion activity
-    if (req.user?.id) {
-      logActivity(req.user.id, `Delete User (ID: ${id})`, req).catch(
-        (logErr) => {
-          if (process.env.NODE_ENV !== "production") {
-            console.warn("Gagal log aktivitas:", logErr.message);
-          }
-        }
-      );
+    if (!id) {
+      return res.status(400).json({ message: "User ID is required" });
     }
 
-    res.json({ message: "User successfully deleted" });
-  } catch (err) {
-    if (process.env.NODE_ENV !== "production") {
-      console.error("Error deleting user:", err?.message || err);
+    // Cari user
+    const [users] = await db.execute("SELECT * FROM user WHERE id = ?", [id]);
+    const userToDelete = users[0];
+    if (!userToDelete) {
+      return res.status(404).json({ message: "User not found" });
     }
-    res.status(500).json({ message: "Internal server error" });
+
+    // Tidak boleh hapus diri sendiri
+    if (userToDelete.id.toString() === currentUser.id.toString()) {
+      return res.status(403).json({ message: "Cannot delete yourself" });
+    }
+
+    // Admin tidak boleh hapus super admin
+    if (
+      currentUser.userrole === "admin" &&
+      userToDelete.userrole === "super admin"
+    ) {
+      return res
+        .status(403)
+        .json({ message: "Admin cannot delete super admin" });
+    }
+
+    // Hapus relasi di tabel lain dulu (misal role_permissions)
+    await db.execute("DELETE FROM role_permissions WHERE user_id = ?", [id]);
+    // Tambahkan hapus tabel lain jika ada
+
+    // Hapus user
+    const [result] = await db.execute("DELETE FROM user WHERE id = ?", [id]);
+    if (result.affectedRows === 0) {
+      return res
+        .status(404)
+        .json({ message: "User not found or already deleted" });
+    }
+
+    res.status(200).json({ message: "User deleted successfully" });
+  } catch (error) {
+    console.error("Delete user error:", error);
+    res
+      .status(500)
+      .json({ message: "Internal server error", error: error.message });
   }
 };
 
@@ -881,7 +1047,6 @@ exports.sendTemperatureAlert = async (req, res) => {
     res.status(500).json({ success: false, message: "Internal server error" });
   }
 };
-
 // Search User Logs with Pagination or PDF Export
 exports.searchUserLogs = async (req, res) => {
   const {
@@ -936,7 +1101,7 @@ exports.searchUserLogs = async (req, res) => {
     }
 
     if (format === "pdf") {
-      const [results] = await db1.query(sql, values);
+      const [results] = await db.query(sql, values);
       const doc = new PDFDocument({ margin: 30 });
 
       res.setHeader("Content-Type", "application/pdf");
@@ -959,8 +1124,8 @@ exports.searchUserLogs = async (req, res) => {
       });
       doc.end();
     } else {
-      const [data] = await db1.query(paginatedSql, paginatedValues);
-      const [count] = await db1.query(countSql, values);
+      const [data] = await db.query(paginatedSql, paginatedValues);
+      const [count] = await db.query(countSql, values);
 
       res.json({
         page: parseInt(page),
@@ -974,5 +1139,406 @@ exports.searchUserLogs = async (req, res) => {
       console.error("Error searching user logs:", err?.message || err);
     }
     res.status(500).json({ error: "Internal server error" });
+  }
+};
+
+// Ambil semua role dan permission-nya
+exports.getAllRolesWithPermissions = async (req, res) => {
+  try {
+    const [roles] = await db.query('SELECT * FROM roles');
+    const [permissions] = await db.query('SELECT * FROM permissions');
+    const [mappings] = await db.query('SELECT * FROM role_default_permissions');
+
+    const roleMap = roles.map(role => {
+      const permissionIds = mappings
+        .filter(m => m.role_id === role.id)
+        .map(m => m.permission_id);
+
+      const assignedPermissions = permissions
+        .filter(p => permissionIds.includes(p.id))
+        .map(p => p.permission_key);
+
+      return {
+        role_key: role.role_key,
+        role_name: role.role_name,
+        icon: role.icon,
+        category: role.category,
+        description: role.description,
+        access: assignedPermissions
+      };
+    });
+
+    // Log the activity
+    if (req.user?.id) {
+      logActivity(req.user.id, "Viewed all roles with permissions", req);
+    }
+
+    res.json(roleMap);
+  } catch (err) {
+    console.error('Error getting role permissions:', err);
+    res.status(500).json({ message: 'Internal Server Error' });
+  }
+};
+
+// Ambil semua permission
+exports.getAllPermissions = async (req, res) => {
+  try {
+    const [rows] = await db.query('SELECT * FROM permissions');
+
+    // Log the activity
+    if (req.user?.id) {
+      logActivity(req.user.id, "Viewed all permissions", req);
+    }
+
+    res.json(rows);
+  } catch (err) {
+    console.error('Error getting permissions:', err);
+    res.status(500).json({ message: 'Internal Server Error' });
+  }
+};
+
+// Ambil permission dari satu role
+exports.getPermissionsByRoleKey = async (req, res) => {
+  const { roleKey } = req.params;
+  try {
+    const [[role]] = await db.query('SELECT * FROM roles WHERE role_key = ?', [roleKey]);
+    if (!role) return res.status(404).json({ message: 'Role not found' });
+
+    const [mappings] = await db.query(
+      `SELECT p.permission_key FROM role_default_permissions rdp
+       JOIN permissions p ON p.id = rdp.permission_id
+       WHERE rdp.role_id = ?`, [role.id]);
+
+    const permissionKeys = mappings.map(row => row.permission_key);
+
+    // Log the activity
+    if (req.user?.id) {
+      logActivity(req.user.id, `Viewed permissions for role: ${roleKey}`, req);
+    }
+
+    res.json({ role_key: roleKey, permissions: permissionKeys });
+  } catch (err) {
+    console.error('Error getting role permissions:', err);
+    res.status(500).json({ message: 'Internal Server Error' });
+  }
+};
+
+// Update permission untuk satu role
+exports.updatePermissionsForRole = async (req, res) => {
+  const { roleKey } = req.params;
+  const { permissions = [] } = req.body;
+
+  if (!Array.isArray(permissions)) {
+    return res.status(400).json({ message: 'Permissions should be an array' });
+  }
+
+  const connection = await db.getConnection(); // ambil koneksi dari pool
+  try {
+    await connection.beginTransaction();
+
+    const [[role]] = await connection.query(
+      'SELECT * FROM roles WHERE role_key = ?', [roleKey]
+    );
+    if (!role) {
+      await connection.rollback();
+      connection.release();
+      return res.status(404).json({ message: 'Role not found' });
+    }
+
+    // Get old permissions for logging
+    const [oldMappings] = await connection.query(
+      `SELECT p.permission_key FROM role_default_permissions rdp
+       JOIN permissions p ON p.id = rdp.permission_id
+       WHERE rdp.role_id = ?`, [role.id]);
+    const oldPermissions = oldMappings.map(row => row.permission_key);
+
+    const [allPermissions] = await connection.query('SELECT * FROM permissions');
+    const validPermissionMap = new Map(allPermissions.map(p => [p.permission_key, p.id]));
+
+    const permissionIds = permissions.map(key => validPermissionMap.get(key)).filter(Boolean);
+
+    await connection.query('DELETE FROM role_default_permissions WHERE role_id = ?', [role.id]);
+
+    if (permissionIds.length > 0) {
+      const values = permissionIds.map(pid => [role.id, pid]);
+      await connection.query(
+        'INSERT INTO role_default_permissions (role_id, permission_id) VALUES ?', [values]
+      );
+    }
+
+    await connection.commit();
+    connection.release();
+
+    // Log the activity
+    if (req.user?.id) {
+      logActivity(
+        req.user.id, 
+        `Updated permissions for role ${roleKey}: removed [${oldPermissions.join(', ')}], added [${permissions.join(', ')}]`, 
+        req
+      );
+    }
+
+    res.json({ message: 'Permissions updated successfully' });
+  } catch (err) {
+    await connection.rollback();
+    connection.release();
+    console.error('Error updating permissions:', err);
+    res.status(500).json({ message: 'Internal Server Error' });
+  }
+};
+
+//create role
+exports.createRole = async (req, res) => {
+  const { role_key, role_name, icon, is_active, description } = req.body;
+
+  if (!role_key || !role_name) {
+    return res.status(400).json({ message: 'Role key and name are required' });
+  }
+
+  try {
+    // Cek apakah role_key sudah ada
+    const [existingRoles] = await db.query('SELECT * FROM roles WHERE role_key = ?', [role_key]);
+    if (existingRoles.length > 0) {
+      return res.status(400).json({ message: 'Role key already exists' });
+    }
+    // Cek apakah role_name sudah ada
+    const [existingNames] = await db.query('SELECT * FROM roles WHERE role_name = ?', [role_name]);
+    if (existingNames.length > 0) {
+      return res.status(400).json({ message: 'Role name already exists' });
+    }
+
+    const [result] = await db.query(
+      'INSERT INTO roles (role_key, role_name, icon, is_active, description, created_at, updated_at) VALUES (?, ?, ?, 1, ?, NOW(), NOW())',
+      [role_key, role_name, icon || null, description || null]
+    );
+
+    // Log the activity
+    if (req.user?.id) {
+      logActivity(
+        req.user.id, 
+        `Created new role: ${role_name} (${role_key}) with description: ${description || 'No description'}`, 
+        req
+      );
+    }
+
+    res.status(201).json({ message: 'Role created successfully', id: result.insertId });
+  } catch (err) {
+    console.error('Error creating role:', err);
+    res.status(500).json({ message: 'Internal Server Error' });
+  }
+};
+
+//update existing role
+exports.updateRole = async (req, res) => {
+  const { roleKey } = req.params;
+  const { role_name, icon, is_active, description } = req.body;
+  
+  if (!role_name) {
+    return res.status(400).json({ message: 'Role name is required' });
+  }
+  
+  try {
+    // Get old role data for logging
+    const [[oldRole]] = await db.query('SELECT * FROM roles WHERE role_key = ?', [roleKey]);
+    if (!oldRole) {
+      return res.status(404).json({ message: 'Role not found' });
+    }
+
+    const [result] = await db.query(
+      'UPDATE roles SET role_name = ?, icon = ?, is_active = ?, description = ?, updated_at = NOW() WHERE role_key = ?',
+      [role_name, icon || null, is_active || 1, description || null, roleKey]
+    );
+    
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ message: 'Role not found' });
+    }
+
+    // Log the activity with changes
+    if (req.user?.id) {
+      const changes = [];
+      if (oldRole.role_name !== role_name) changes.push(`name: '${oldRole.role_name}' → '${role_name}'`);
+      if (oldRole.icon !== (icon || null)) changes.push(`icon: '${oldRole.icon}' → '${icon || null}'`);
+      if (oldRole.is_active !== (is_active || 1)) changes.push(`status: ${oldRole.is_active ? 'active' : 'inactive'} → ${(is_active || 1) ? 'active' : 'inactive'}`);
+      if (oldRole.description !== (description || null)) changes.push(`description: '${oldRole.description}' → '${description || null}'`);
+      
+      logActivity(
+        req.user.id, 
+        `Updated role ${roleKey}: ${changes.length > 0 ? changes.join(', ') : 'No changes detected'}`, 
+        req
+      );
+    }
+    
+    res.json({ message: 'Role updated successfully' });
+  } catch (err) {
+    console.error('Error updating role:', err);
+    res.status(500).json({ message: 'Internal Server Error' });
+  }
+};
+
+// Delete role
+exports.deleteRole = async (req, res) => {
+  const { roleKey } = req.params;
+
+  try {
+    // Get role data before deletion for logging
+    const [[roleToDelete]] = await db.query('SELECT * FROM roles WHERE role_key = ?', [roleKey]);
+    if (!roleToDelete) {
+      return res.status(404).json({ message: 'Role not found' });
+    }
+
+    // Get associated permissions for logging
+    const [associatedPermissions] = await db.query(
+      `SELECT p.permission_key FROM role_default_permissions rdp
+       JOIN permissions p ON p.id = rdp.permission_id
+       WHERE rdp.role_id = ?`, [roleToDelete.id]);
+    const permissionKeys = associatedPermissions.map(row => row.permission_key);
+
+    const [result] = await db.query('DELETE FROM roles WHERE role_key = ?', [roleKey]);
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ message: 'Role not found' });
+    }
+
+    // Hapus juga relasi di role_default_permissions (CASCADE should handle this, but being explicit)
+    await db.query('DELETE FROM role_default_permissions WHERE role_id = ?', [roleToDelete.id]);
+
+    // Log the activity
+    if (req.user?.id) {
+      logActivity(
+        req.user.id, 
+        `Deleted role: ${roleToDelete.role_name} (${roleKey}) with permissions: [${permissionKeys.join(', ') || 'No permissions'}]`, 
+        req
+      );
+    }
+
+    res.json({ message: 'Role deleted successfully' });
+  } catch (err) {
+    console.error('Error deleting role:', err);
+    res.status(500).json({ message: 'Internal Server Error' });
+  }
+};
+
+// Create permission
+exports.createPermission = async (req, res) => {
+  const { permission_key, permission_name, description, category } = req.body;
+  
+  if (!permission_key || !permission_name) {
+    return res.status(400).json({ message: 'Permission key and name are required' });
+  }
+  
+  try {
+    // Cek apakah permission_key sudah ada
+    const [existingPermissions] = await db.query('SELECT * FROM permissions WHERE permission_key = ?', [permission_key]);
+    if (existingPermissions.length > 0) {
+      return res.status(400).json({ message: 'Permission key already exists' });
+    }
+    
+    const [result] = await db.query(
+      'INSERT INTO permissions (permission_key, permission_name, description, category, created_at, updated_at) VALUES (?, ?, ?, ?, NOW(), NOW())',
+      [permission_key, permission_name, description || null, category || null]
+    );
+
+    // Log the activity
+    if (req.user?.id) {
+      logActivity(
+        req.user.id, 
+        `Created new permission: ${permission_name} (${permission_key}) in category: ${category || 'No category'} with description: ${description || 'No description'}`, 
+        req
+      );
+    }
+    
+    res.status(201).json({ message: 'Permission created successfully', id: result.insertId });
+  } catch (err) {
+    console.error('Error creating permission:', err);
+    res.status(500).json({ message: 'Internal Server Error' });
+  }
+};
+
+// Update existing permission
+exports.updatePermission = async (req, res) => {
+  const { permissionKey } = req.params;
+  const { permission_name, description, category } = req.body;
+
+  if (!permission_name) {
+    return res.status(400).json({ message: 'Permission name is required' });
+  }
+
+  try {
+    // Get old permission data for logging
+    const [[oldPermission]] = await db.query('SELECT * FROM permissions WHERE permission_key = ?', [permissionKey]);
+    if (!oldPermission) {
+      return res.status(404).json({ message: 'Permission not found' });
+    }
+
+    const [result] = await db.query(
+      'UPDATE permissions SET permission_name = ?, description = ?, category = ?, updated_at = NOW() WHERE permission_key = ?',
+      [permission_name, description || null, category || null, permissionKey]
+    );
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ message: 'Permission not found' });
+    }
+
+    // Log the activity with changes
+    if (req.user?.id) {
+      const changes = [];
+      if (oldPermission.permission_name !== permission_name) changes.push(`name: '${oldPermission.permission_name}' → '${permission_name}'`);
+      if (oldPermission.description !== (description || null)) changes.push(`description: '${oldPermission.description}' → '${description || null}'`);
+      if (oldPermission.category !== (category || null)) changes.push(`category: '${oldPermission.category}' → '${category || null}'`);
+      
+      logActivity(
+        req.user.id, 
+        `Updated permission ${permissionKey}: ${changes.length > 0 ? changes.join(', ') : 'No changes detected'}`, 
+        req
+      );
+    }
+
+    res.json({ message: 'Permission updated successfully' });
+  } catch (err) {
+    console.error('Error updating permission:', err);
+    res.status(500).json({ message: 'Internal Server Error' });
+  }
+};
+
+// Delete permission
+exports.deletePermission = async (req, res) => {
+  const { permissionKey } = req.params;
+  
+  try {
+    // Get permission data before deletion for logging
+    const [[permissionToDelete]] = await db.query('SELECT * FROM permissions WHERE permission_key = ?', [permissionKey]);
+    if (!permissionToDelete) {
+      return res.status(404).json({ message: 'Permission not found' });
+    }
+
+    // Get roles that have this permission for logging
+    const [associatedRoles] = await db.query(
+      `SELECT r.role_key, r.role_name FROM role_default_permissions rdp
+       JOIN roles r ON r.id = rdp.role_id
+       WHERE rdp.permission_id = ?`, [permissionToDelete.id]);
+    const roleKeys = associatedRoles.map(row => `${row.role_name} (${row.role_key})`);
+
+    const [result] = await db.query('DELETE FROM permissions WHERE permission_key = ?', [permissionKey]);
+    
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ message: 'Permission not found' });
+    }
+    
+    // Hapus juga relasi di role_default_permissions (CASCADE should handle this, but being explicit)
+    await db.query('DELETE FROM role_default_permissions WHERE permission_id = ?', [permissionToDelete.id]);
+
+    // Log the activity
+    if (req.user?.id) {
+      logActivity(
+        req.user.id, 
+        `Deleted permission: ${permissionToDelete.permission_name} (${permissionKey}) from category: ${permissionToDelete.category || 'No category'}, removed from roles: [${roleKeys.join(', ') || 'No roles'}]`, 
+        req
+      );
+    }
+    
+    res.json({ message: 'Permission deleted successfully' });
+  } catch (err) {
+    console.error('Error deleting permission:', err);
+    res.status(500).json({ message: 'Internal Server Error' });
   }
 };

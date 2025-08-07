@@ -88,11 +88,7 @@ exports.getRequestsByBatch = async (req, res) => {
 
     // Log the activity
     if (req.user?.id) {
-      logActivity(
-        req.user.id,
-        `Viewed Raman requests for batch ${batch_number}`,
-        req
-      );
+      logActivity(req.user.id, `Viewed Raman requests for batch ${batch_number}`, req);
     }
 
     res.json({
@@ -134,11 +130,7 @@ exports.getUsedVatsForBatch = async (req, res) => {
 
     // Log the activity
     if (req.user?.id) {
-      logActivity(
-        req.user.id,
-        `Viewed used vats for batch ${batch_number}`,
-        req
-      );
+      logActivity(req.user.id, `Viewed used vats for batch ${batch_number}`, req);
     }
 
     res.json(vats.map((v) => v.vat_number));
@@ -157,7 +149,9 @@ exports.createRamanRequest = async (req, res) => {
     tanggal_timbang,
     requested_at,
   } = req.body;
+  
   try {
+    // 1. Handle material (sama seperti sebelumnya)
     let [material] = await db1.query(
       `SELECT id FROM materialraman WHERE name = ?`,
       [material_name]
@@ -171,15 +165,18 @@ exports.createRamanRequest = async (req, res) => {
     }
     const material_id = material[0].id;
 
+    // 2. Handle batch (TANPA tanggal_timbang)
     let [batchRows] = await db1.query(
       `SELECT id, vat_count FROM batches WHERE batch_number = ? AND material_id = ?`,
       [batch_number, material_id]
     );
+    
     let batch_id;
     if (!batchRows.length) {
+      // INSERT batch TANPA tanggal_timbang
       const [result] = await db1.query(
-        `INSERT INTO batches (batch_number, material_id, vat_count,tanggal_timbang) VALUES (?, ?, ?,?)`,
-        [batch_number, material_id, vat_count, tanggal_timbang]
+        `INSERT INTO batches (batch_number, material_id, vat_count) VALUES (?, ?, ?)`,
+        [batch_number, material_id, vat_count]
       );
       batch_id = result.insertId;
     } else {
@@ -189,40 +186,44 @@ exports.createRamanRequest = async (req, res) => {
           message: `Batch sudah ada (${batch_number}) untuk material tersebut dengan jumlah vat ${batchRows[0].vat_count}. Tidak bisa input jumlah vat berbeda!`,
         });
       }
-      // Update tanggal_timbang jika ingin selalu mengupdate field-nya:
-      await db1.query(`UPDATE batches SET tanggal_timbang = ? WHERE id = ?`, [
-        tanggal_timbang,
-        batch_id,
-      ]);
+
     }
 
-    // Simpan waktu dalam UTC
+    // 3. Simpan waktu dalam UTC
     const waktuRequest = requested_at
       ? dayjs(requested_at).utc().format("YYYY-MM-DD HH:mm:ss")
       : nowUTC();
+    
+    // 4. Format tanggal_timbang jika ada
+    const tanggalTimbangFormatted = tanggal_timbang 
+      ? dayjs(tanggal_timbang).utc().format("YYYY-MM-DD HH:mm:ss")
+      : null;
 
     console.log("DATA AKAN DISIMPAN", {
       batch_id,
       material_id,
       operator_id,
-      requested_at,
+      requested_at: waktuRequest,
+      tanggal_timbang: tanggalTimbangFormatted
     });
+
+    // 5. INSERT ke raman_requests DENGAN tanggal_timbang
     const [result] = await db1.query(
-      `INSERT INTO raman_requests (batch_id, material_id, operator_id, requested_at, status)
-             VALUES (?, ?, ?, ?, 'request')`,
-      [batch_id, material_id, operator_id, waktuRequest]
+      `INSERT INTO raman_requests (batch_id, material_id, operator_id, requested_at, tanggal_timbang, status)
+       VALUES (?, ?, ?, ?, ?, 'request')`,
+      [batch_id, material_id, operator_id, waktuRequest, tanggalTimbangFormatted]
     );
 
     // Log the activity
     if (req.user?.id) {
-      logActivity(
-        req.user.id,
-        `Created new Raman request for batch ${batch_number}`,
-        req
-      );
+      logActivity(req.user.id, `Created new Raman request for batch ${batch_number}`, req);
     }
 
-    res.status(201).json({ id: result.insertId });
+    res.status(201).json({ 
+      id: result.insertId,
+      message: "Request berhasil dibuat dengan tanggal timbang"
+    });
+    
   } catch (err) {
     console.error("Error in createRamanRequest:", err.message);
     res.status(500).json({ message: err.message });
@@ -256,11 +257,7 @@ exports.progressRequest = async (req, res) => {
 
     // Log the activity
     if (req.user?.id) {
-      logActivity(
-        req.user.id,
-        `Set Raman request ${request_id} to progress`,
-        req
-      );
+      logActivity(req.user.id, `Set Raman request ${request_id} to progress`, req);
     }
 
     res.json({ message: "Request on progress" });
@@ -272,15 +269,13 @@ exports.progressRequest = async (req, res) => {
 
 exports.deleteRequest = async (req, res) => {
   const { request_id } = req.params;
-   console.log('req.user:', req.user);
-  console.log('req.body:', req.body);
   try {
     // Dapatkan info batch untuk log
     const [requestDetails] = await db1.query(
       `SELECT batch_id FROM raman_requests WHERE id = ?`,
       [request_id]
     );
-    let batchNumber = "Unknown Batch";
+    let batchNumber = 'Unknown Batch';
     if (requestDetails.length > 0) {
       const [batchInfo] = await db1.query(
         `SELECT batch_number FROM batches WHERE id = ?`,
@@ -291,9 +286,7 @@ exports.deleteRequest = async (req, res) => {
       }
     }
 
-    await db1.query("DELETE FROM request_vats WHERE request_id = ?", [
-      request_id,
-    ]);
+    await db1.query("DELETE FROM request_vats WHERE request_id = ?", [request_id]);
     await db1.query("DELETE FROM raman_requests WHERE id = ?", [request_id]);
 
     // Log the activity (PASTIKAN di-await dan cek error-nya)
@@ -301,9 +294,7 @@ exports.deleteRequest = async (req, res) => {
       try {
         await logActivity(
           req.user.id,
-          `Deleted Raman request ${request_id} (Batch: ${batchNumber}, Notes: ${
-            req.body.notes || "-"
-          })`,
+          `Deleted Raman request ${request_id} (Batch: ${batchNumber}, Notes: ${req.body.notes || "-"})`,
           req
         );
       } catch (logErr) {
@@ -326,9 +317,7 @@ exports.submitVats = async (req, res) => {
       return res.status(400).json({ message: "Vats kosong" });
     }
     // Delete existing vats for this request to replace them with new ones
-    await db1.query("DELETE FROM request_vats WHERE request_id = ?", [
-      request_id,
-    ]);
+    await db1.query("DELETE FROM request_vats WHERE request_id = ?", [request_id]);
 
     for (let vat of vats) {
       await db1.query(
@@ -340,11 +329,7 @@ exports.submitVats = async (req, res) => {
 
     // Log the activity
     if (req.user?.id) {
-      logActivity(
-        req.user.id,
-        `Submitted vats for request ${request_id}: [${vats.join(", ")}]`,
-        req
-      );
+      logActivity(req.user.id, `Submitted vats for request ${request_id}: [${vats.join(', ')}]`, req);
     }
 
     res.json({ message: "Vats updated" });
@@ -405,6 +390,8 @@ exports.completeRequest = async (req, res) => {
   }
 };
 
+
+
 exports.editRequestWithReason = async (req, res) => {
   const { request_id } = req.params;
   const { user_id, field, old_value, new_value, reason, vat_number } = req.body;
@@ -420,13 +407,8 @@ exports.editRequestWithReason = async (req, res) => {
     );
 
     // Log the activity
-    if (req.user?.id) {
-      // Use req.user.id for consistency, assuming user_id from body is the same or redundant
-      logActivity(
-        req.user.id,
-        `Edited request ${request_id}: changed ${field} from '${old_value}' to '${new_value}' (Reason: ${reason})`,
-        req
-      );
+    if (req.user?.id) { // Use req.user.id for consistency, assuming user_id from body is the same or redundant
+      logActivity(req.user.id, `Edited request ${request_id}: changed ${field} from '${old_value}' to '${new_value}' (Reason: ${reason})`, req);
     }
 
     res.json({ message: "Request updated with reason" });
@@ -435,6 +417,7 @@ exports.editRequestWithReason = async (req, res) => {
     res.status(500).json({ message: err.message });
   }
 };
+
 
 exports.editCompleteRequest = async (req, res) => {
   const { id: request_id } = req.params;
@@ -455,19 +438,13 @@ exports.editCompleteRequest = async (req, res) => {
       `SELECT vat_number FROM request_vats WHERE request_id = ?`,
       [request_id]
     );
-    const oldVats = oldVatsQuery[0].map((v) => v.vat_number).join(", ");
+    const oldVats = oldVatsQuery[0].map(v => v.vat_number).join(', ');
 
     // 3. Clear existing vats for this request
-    await db1.query("DELETE FROM request_vats WHERE request_id = ?", [
-      request_id,
-    ]);
+    await db1.query("DELETE FROM request_vats WHERE request_id = ?", [request_id]);
 
     // 4. Insert the new/updated vats
-    if (
-      selectedVats &&
-      Array.isArray(selectedVats) &&
-      selectedVats.length > 0
-    ) {
+    if (selectedVats && Array.isArray(selectedVats) && selectedVats.length > 0) {
       for (let vat of selectedVats) {
         await db1.query(
           `INSERT INTO request_vats (request_id, vat_number) VALUES (?, ?)`,
@@ -478,15 +455,10 @@ exports.editCompleteRequest = async (req, res) => {
 
     // 5. Log the activity with notes as the reason
     if (req.user?.id) {
-      const newVats =
-        selectedVats && Array.isArray(selectedVats)
-          ? selectedVats.join(", ")
-          : "";
+      const newVats = selectedVats && Array.isArray(selectedVats) ? selectedVats.join(', ') : '';
       await logActivity(
         req.user.id,
-        `Edited completed request ${request_id}: Updated vats from [${oldVats}] to [${newVats}] (Reason: ${
-          notes || "No specific reason provided"
-        })`,
+        `Edited completed request ${request_id}: Updated vats from [${oldVats}] to [${newVats}] (Reason: ${notes || 'No specific reason provided'})`,
         req
       );
     }
@@ -497,6 +469,8 @@ exports.editCompleteRequest = async (req, res) => {
     res.status(500).json({ message: "Failed to edit complete request data." });
   }
 };
+
+
 
 exports.getRamanMonitoringData = async (req, res) => {
   try {

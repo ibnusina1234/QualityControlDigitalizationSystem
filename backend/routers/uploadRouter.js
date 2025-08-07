@@ -9,6 +9,6 @@ const router = express.Router();
 const upload = multer({ dest: "uploads/" });
 
 // Rute untuk upload gambar
-router.post("/uploadToGdrvie", upload.single("image"), uploadImage); // Menggunakan controller
+router.post("/uploadToGdrive", upload.single("image"), uploadImage); // Menggunakan controller
 
 module.exports = router;

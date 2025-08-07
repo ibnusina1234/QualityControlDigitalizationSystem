@@ -3,32 +3,35 @@ const router = express.Router();
 const ramanController = require("../controllers/identificationRaman");
 const { getBatchListFromSheet } = require("../utils/getDataSpreadsheet");
 const dayjs = require("dayjs");
-const verifyToken = require("../middleware/auth");
 require("dayjs/plugin/utc");
 require("dayjs/plugin/timezone");
 dayjs.extend(require("dayjs/plugin/utc"));
 dayjs.extend(require("dayjs/plugin/timezone"));
-const db1 = require("../database/db");
+const verifyToken = require("../middleware/auth");
 
 // CREATE: Warehouse create new request (only material, operator)
-router.post("/request", (req, res, next) => {
-  console.log("POST /Raman/request", req.body); // <--- log payload dari frontend
-  next(); // lanjutkan ke controller
-}, ramanController.createRamanRequest);
-
+router.post("/request", ramanController.createRamanRequest);
 
 // GET: All requests across all batch (global dashboard)
 router.get("/all-requests", async (req, res) => {
+  const db = require("../database/dbForKS");
   try {
-    const [rows] = await db1.query(`
-      
+    const [rows] = await db.query(`
       SELECT 
-        r.id, r.batch_id, r.material_id,
+        r.id, 
+        r.batch_id, 
+        r.material_id,
+        r.tanggal_timbang,  -- Ambil dari raman_requests, bukan dari batches
         COALESCE(mb.name, mr.name) AS material,
-        b.batch_number, b.vat_count, 
-        r.operator_id, u.nama_lengkap AS operator_name, 
-        r.inspector_id, i.nama_lengkap AS inspector_name,
-        r.requested_at, r.processed_at, r.completed_at, 
+        b.batch_number, 
+        b.vat_count, 
+        r.operator_id, 
+        u.nama_lengkap AS operator_name, 
+        r.inspector_id, 
+        i.nama_lengkap AS inspector_name,
+        r.requested_at, 
+        r.processed_at, 
+        r.completed_at, 
         r.status
       FROM raman_requests r
       LEFT JOIN batches b ON r.batch_id = b.id
@@ -36,45 +39,57 @@ router.get("/all-requests", async (req, res) => {
       LEFT JOIN materialraman mr ON r.material_id = mr.id
       JOIN user u ON r.operator_id = u.id
       LEFT JOIN user i ON r.inspector_id = i.id
-      ORDER BY r.requested_at DESC
+      ORDER BY r.requested_at DESC;
     `);
 
     // Add identified vats for each request
     for (const req of rows) {
-      const [vats] = await db1.query(
+      const [vats] = await db.query(
         `SELECT vat_number FROM request_vats WHERE request_id = ? ORDER BY vat_number ASC`,
         [req.id]
       );
       req.identified_vats = vats.map((v) => v.vat_number);
 
       // Konversi waktu ke WIB (Asia/Jakarta)
-      if (req.requested_at)
+      if (req.requested_at) {
         req.requested_at = dayjs(req.requested_at)
           .tz("Asia/Jakarta")
           .format("YYYY-MM-DDTHH:mm:ssZ");
-      if (req.processed_at)
+      }
+      if (req.processed_at) {
         req.processed_at = dayjs(req.processed_at)
           .tz("Asia/Jakarta")
           .format("YYYY-MM-DDTHH:mm:ssZ");
-      if (req.completed_at)
+      }
+      if (req.completed_at) {
         req.completed_at = dayjs(req.completed_at)
           .tz("Asia/Jakarta")
           .format("YYYY-MM-DDTHH:mm:ssZ");
+      }
+      
+      // TAMBAHKAN: Konversi tanggal_timbang ke WIB jika ada
+      if (req.tanggal_timbang) {
+        req.tanggal_timbang = dayjs(req.tanggal_timbang)
+          .tz("Asia/Jakarta")
+          .format("YYYY-MM-DDTHH:mm:ssZ");
+      }
     }
+    
     res.json(rows);
   } catch (err) {
+    console.error("Error in /all-requests:", err.message);
     res.status(500).json({ message: err.message });
   }
 });
 
 // Get materialId by name
 router.get("/material-id", async (req, res) => {
+  const db = require("../database/dbForKS");
   const { name } = req.query;
   if (!name) return res.status(400).json({ message: "Missing name" });
-  const [rows] = await db1.query(
-    "SELECT id FROM materialraman WHERE name = ?",
-    [name]
-  );
+  const [rows] = await db.query("SELECT id FROM materialraman WHERE name = ?", [
+    name,
+  ]);
   if (!rows.length)
     return res.status(404).json({ message: "Material not found" });
   res.json({ id: rows[0].id });
@@ -94,10 +109,11 @@ router.get("/sheet-batch", async (req, res) => {
 
 // Check batch exist by material_id & batch_number
 router.get("/batch-exist", async (req, res) => {
+  const db = require("../database/dbForKS");
   const { material_id, batch_number } = req.query;
   if (!material_id || !batch_number)
     return res.status(400).json({ message: "Missing params" });
-  const [rows] = await db1.query(
+  const [rows] = await db.query(
     "SELECT id, vat_count FROM batches WHERE material_id = ? AND batch_number = ?",
     [material_id, batch_number]
   );
@@ -108,13 +124,21 @@ router.get("/batch-exist", async (req, res) => {
 // GET: All requests for a specific batch
 router.get("/batch/:batch_number", ramanController.getRequestsByBatch);
 
-router.patch("/request/:id/edit-complete",verifyToken,ramanController.editCompleteRequest);
+// GET : Raman Data
+router.get("/getDashboardData", ramanController.getRamanMonitoringData);
+
+router.patch(
+  "/request/:id/edit-complete",
+  verifyToken,
+  ramanController.editCompleteRequest
+);
 
 // DELETE: Hapus request raman (by id)
-router.delete('/request/:request_id', verifyToken, ramanController.deleteRequest);
-
-// GET : Raman Data
-router.get("/getDashboardData",ramanController.getRamanMonitoringData);
+router.delete(
+  "/request/:request_id",
+  verifyToken,
+  ramanController.deleteRequest
+);
 
 // PATCH: Progress (QC assign batch, lot, vat_count, etc)
 router.patch("/request/:request_id/progress", ramanController.progressRequest);
@@ -129,6 +153,7 @@ router.get(
   "/batches/:batch_number/used-vats",
   ramanController.getUsedVatsForBatch
 );
+
 
 // PATCH: Edit request with reason (audit trail)
 router.patch(

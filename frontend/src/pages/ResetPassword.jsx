@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import axios from 'axios';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Box, FormControl, FormLabel, Input, Button, Heading, Alert, AlertIcon } from "@chakra-ui/react";
+import { useSelector } from "react-redux"; 
 
 function useQuery() {
     return new URLSearchParams(useLocation().search);
@@ -14,6 +15,7 @@ function ResetPassword() {
     const [confirmPassword, setConfirmPassword] = useState('');
     const [message, setMessage] = useState('');
     const [error, setError] = useState('');
+     const userRedux = useSelector(state => state.user.user);
 
     const handleSubmit = (e) => {
         e.preventDefault();
@@ -21,9 +23,16 @@ function ResetPassword() {
             setError("Passwords do not match");
             return;
         }
-
-        const email = query.get('email');
+        let email = query.get('email');
         const token = query.get('token');
+        if (!email && userRedux?.email) {
+            email = userRedux.email;
+        }
+
+        if (!email) {
+            setError("Email tidak ditemukan. Silakan login ulang.");
+            return;
+        }
 
         axios.post( `${process.env.REACT_APP_API_BASE_URL}/users/reset-password`, { email, token, newPassword: password })
             .then(response => {
