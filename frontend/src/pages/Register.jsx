@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
       Box,
       Button,
@@ -18,6 +18,7 @@ import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import DOMPurify from "dompurify";
 
+
 const Register = () => {
       const [formData, setFormData] = useState({
             email: "",
@@ -35,6 +36,26 @@ const Register = () => {
       const { colorMode } = useColorMode();
       const navigate = useNavigate();
       const toast = useToast();
+      const [roles, setRoles] = useState([]);
+
+      useEffect(() => {
+            const fetchRoles = async () => {
+                  try {
+                        const response = await axios.get(`${process.env.REACT_APP_API_BASE_URL}/users/roles`, {
+                              withCredentials: true,
+                        });
+                        const simplified = response.data.map(role => ({
+                              role_key: role.role_key,
+                              role_name: role.role_name
+                        }));
+                        setRoles(simplified);
+                  } catch (error) {
+                        console.error('Gagal fetch role:', error);
+                  }
+            };
+
+            fetchRoles();
+      }, []);
 
       const checkEmailExists = async (email) => {
             try {
@@ -66,22 +87,15 @@ const Register = () => {
       const validatePassword = (password) => {
             const capitalLetterRegex = /^[A-Z]/;
             const numberRegex = /[0-9]/;
-            const lowercaseRegex = /[a-z]/;
-            const symbolRegex = /[^A-Za-z0-9]/;
-            return (
-                  capitalLetterRegex.test(password) &&
-                  numberRegex.test(password) &&
-                  lowercaseRegex.test(password) &&
-                  symbolRegex.test(password)
-            );
+            return capitalLetterRegex.test(password) && numberRegex.test(password);
       };
 
       // Daftar jabatan berdasarkan departemen
       const jabatanOptions = {
-            PRODUKSI: ['OPERATOR PRODUKSI', 'SUPERVISOR PRODUKSI', 'MANAGER PRODUKSI', "ADMIN PRODUKSI"],
+            Produksi: ['OPERATOR PRODUKSI', 'SUPERVISOR PRODUKSI', 'MANAGER PRODUKSI', "ADMIN PRODUKSI"],
             QC: ["ANALIS FG", "ANALIS RM", "ANALIS MIKROBIOLOGI", "INSPEKTOR QC", "ADMIN QC", 'SUPERVISOR QC', 'MANAGER QC'],
-            QA: ['INSPEKTOR KALIBRASI QA','INSPEKTOR VALIDASI DAN KUALIFIKASI QA','INSPEKTOR RETURN QA', 'ADMIN QA', 'SUPERVISOR QA', 'MANAGER QA'],
-            WH: ['OPERATOR PREPARASI WH','OPERATOR PENIMNBANGAN WH', 'SUPERVISOR WH', 'ADMIN WH', 'MANAGER WH'],
+            QA: ['INSPEKTOR QA', 'ADMIN QA', 'SUPERVISOR QA', 'MANAGER QA'],
+            WH: ['OPERATOR WH', 'SUPERVISOR WH', 'ADMIN WH', 'MANAGER WH'],
             RND: ['ADMIN RND', 'ANALIS RND', 'SUPERVISOR RND', 'MANAGER RND'],
             TEKNIK: ['ADMIN TEKNIK', 'SUPERVISOR TEKNIK', 'MANAGER TEKNIK', 'TEKNISI'],
             QS: ['ADMIN QS', 'SUPERVISOR QC', 'MANAGER QS', 'STAFF QS'],
@@ -100,6 +114,7 @@ const Register = () => {
                   jabatan,
                   password,
                   konfirmasi_password,
+                  role,
                   img,
             } = formData;
 
@@ -110,7 +125,7 @@ const Register = () => {
             }
 
             if (!validatePassword(password)) {
-                  setError("Password minimal 6 character diawali huruf besar dan mengandung huruf kecil, angka, dan simbol.");
+                  setError("Password minimal 6 karakter. harus diawali huruf besar,huruf kecil, mengandung angka dan simbol.");
                   setIsSubmitting(false);
                   return;
             }
@@ -121,6 +136,12 @@ const Register = () => {
                   setIsSubmitting(false);
                   return;
             }
+            if (!role) {
+                  setError("Role utama harus dipilih.");
+                  setIsSubmitting(false);
+                  return;
+            }
+
 
             const formDataToSubmit = new FormData();
             formDataToSubmit.append("email", email);
@@ -129,6 +150,7 @@ const Register = () => {
             formDataToSubmit.append("departement", departement);
             formDataToSubmit.append("jabatan", jabatan);
             formDataToSubmit.append("password", password);
+            formDataToSubmit.append("role", role);
             if (img) {
                   formDataToSubmit.append("img", img);
             }
@@ -201,7 +223,7 @@ const Register = () => {
                                     value={formData.departement}
                                     onChange={handleChange}
                                     placeholder="Pilih departement"
-                              > 
+                              >
                                     <option value="QC">QC</option>
                                     <option value="QA">QA</option>
                                     <option value="WH">WH</option>
@@ -216,7 +238,7 @@ const Register = () => {
                                           value={formData.jabatan}
                                           onChange={handleChange}
                                           placeholder="Pilih Jabatan"
-                                          isDisabled={!formData.departement} // Disable jabatan jika belum pilih departemen
+                                          isDisabled={!formData.departement}
                                     >
                                           {(jabatanOptions[formData.departement] || []).map((jabatan) => (
                                                 <option key={jabatan} value={jabatan}>
@@ -236,6 +258,22 @@ const Register = () => {
                               <FormControl>
                                     <FormLabel>Gambar Profil</FormLabel>
                                     <Input type="file" name="img" onChange={handleFileChange} />
+                              </FormControl>
+                              {/* Tambahan ceklis akses user */}
+                              <FormControl isRequired>
+                                    <FormLabel>Role Utama</FormLabel>
+                                    <Select
+                                          name="role"
+                                          value={formData.role || ""}
+                                          onChange={handleChange}
+                                          placeholder="Pilih role utama"
+                                    >
+                                          {roles.map((opt) => (
+                                                <option key={opt.role_key} value={opt.role_key}>
+                                                      {opt.role_name}
+                                                </option>
+                                          ))}
+                                    </Select>
                               </FormControl>
                               <Button
                                     colorScheme="teal"

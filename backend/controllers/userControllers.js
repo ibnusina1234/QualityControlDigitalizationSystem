@@ -34,20 +34,10 @@ exports.registerUser = async (req, res) => {
         .json({ error: "Invalid input", details: errors.array() });
     }
 
-    const { email, nama_lengkap, inisial, departement, jabatan, password,role } =
+    const { email, nama_lengkap, inisial, departement, jabatan, password, role } =
       req.body;
 
-    // Ambil permissions dari req.body (jika FormData, perlu parse JSON)
-    let permissions = [];
-    if (req.body.permissions) {
-      try {
-        permissions = JSON.parse(req.body.permissions);
-      } catch (e) {
-        permissions = Array.isArray(req.body.permissions)
-          ? req.body.permissions
-          : [req.body.permissions];
-      }
-    }
+    // Handle image path
     const imgPath = req.file ? `public/uploads/${req.file.filename}` : null;
 
     if (process.env.NODE_ENV !== "production") {
@@ -59,17 +49,24 @@ exports.registerUser = async (req, res) => {
         jabatan,
         role,
         imgPath,
-        permissions,
       });
     }
 
+    // Validasi data yang diperlukan (img tidak wajib)
+    if (!email || !nama_lengkap || !inisial || !departement || !jabatan || !password || !role) {
+      return res.status(400).json({ 
+        error: "Semua field wajib harus diisi (kecuali gambar profil)" 
+      });
+    }
+
+    // Hash password
     const hash = await bcrypt.hash(password, saltRounds);
     const userId = uuidv4();
 
-    // Insert user ke tabel user
+    // Insert user ke tabel user dengan role ke kolom userrole
     const [result] = await db.execute(
       `INSERT INTO user (id, email, nama_lengkap, inisial, departement, jabatan, password, userrole, img, status) 
-       VALUES (?, ?, ?, ?, ?, ?, ?,?, ?, 'Active')`,
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'Active')`,
       [
         userId,
         email,
@@ -78,32 +75,21 @@ exports.registerUser = async (req, res) => {
         departement,
         jabatan,
         hash,
-        role,
+        role, // Role disimpan ke kolom userrole
         imgPath,
       ]
     );
-
-
 
     if (process.env.NODE_ENV !== "production") {
       console.log("User berhasil didaftarkan ke database:", result);
     }
 
-    try {
-      await sendApprovalEmail(email, nama_lengkap);
-      if (process.env.NODE_ENV !== "production") {
-        console.log("Approval email berhasil dikirim ke admin.");
-      }
-    } catch (emailErr) {
-      if (process.env.NODE_ENV !== "production") {
-        console.error("Gagal mengirim approval email:", emailErr.message);
-      }
-    }
-
     res.status(201).json({
-      message: "User registered!.",
+      message: "User registered successfully!",
+      userId: userId,
     });
 
+    // Log aktivitas
     logActivity(nama_lengkap, "Register", req).catch((logErr) => {
       if (process.env.NODE_ENV !== "production") {
         console.warn("Gagal log aktivitas:", logErr.message);
@@ -113,6 +99,12 @@ exports.registerUser = async (req, res) => {
     if (process.env.NODE_ENV !== "production") {
       console.error("Kesalahan tidak terduga dalam registerUser:", err.message);
     }
+    
+    // Handle specific database errors
+    if (err.code === 'ER_DUP_ENTRY') {
+      return res.status(409).json({ error: "Email sudah terdaftar" });
+    }
+    
     return res.status(500).json({ error: "Internal server error" });
   }
 };
@@ -924,10 +916,6 @@ exports.deleteUserById = async (req, res) => {
         .status(403)
         .json({ message: "Admin cannot delete super admin" });
     }
-
-    // Hapus relasi di tabel lain dulu (misal role_permissions)
-    await db.execute("DELETE FROM role_permissions WHERE user_id = ?", [id]);
-    // Tambahkan hapus tabel lain jika ada
 
     // Hapus user
     const [result] = await db.execute("DELETE FROM user WHERE id = ?", [id]);

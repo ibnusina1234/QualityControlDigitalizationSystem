@@ -262,6 +262,7 @@ router.post(
       "/reset-password",
       dynamicRateLimiter,
       sanitizeInput,
+      validatePassword,
       userController.resetPassword
 );
 
