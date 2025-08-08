@@ -611,7 +611,7 @@ export default function UserAccessSettings() {
       setError(null);
 
       // 1. Fetch Permissions
-      const permissionsRes = await axios.get(`${API_BASE}/permissions`, {
+      const permissionsRes = await axios.get(`${API_BASE}/users/permissions`, {
         withCredentials: true
       });
       // Map permissions sesuai response controller
@@ -624,7 +624,7 @@ export default function UserAccessSettings() {
       setAccessOptions(mappedPermissions);
 
       // 2. Fetch Roles
-      const rolesRes = await axios.get(`${API_BASE}/roles`, {
+      const rolesRes = await axios.get(`${API_BASE}/users/roles`, {
         withCredentials: true
       });
       // Map roles sesuai response controller
@@ -643,7 +643,7 @@ export default function UserAccessSettings() {
         const roleKey = r.role_key || r.key || r.id;
         // Fetch "permissions" for each role using endpoint GET /roles/:roleKey/permissions (optional, fallback ke property pada role)
         try {
-          const permRelRes = await axios.get(`${API_BASE}/roles/${roleKey}/permissions`, {
+          const permRelRes = await axios.get(`${API_BASE}/users/roles/${roleKey}/permissions`, {
             withCredentials: true
           });
           // Properti return: permissions: [permission_key, ...]
@@ -684,7 +684,7 @@ export default function UserAccessSettings() {
   const handleSaveAccess = async (newAccess) => {
     if (currentRole) {
       try {
-        await axios.put(`${API_BASE}/roles/${currentRole.key}/permissions`, {
+        await axios.put(`${API_BASE}/users/roles/${currentRole.key}/permissions`, {
           permissions: newAccess
         }, {
           withCredentials: true
@@ -712,7 +712,7 @@ export default function UserAccessSettings() {
 
   const handleResetToDefault = async (roleKey) => {
     try {
-      const res = await axios.get(`${API_BASE}/roles/${roleKey}/permissions`, {
+      const res = await axios.get(`${API_BASE}/users/roles/${roleKey}/permissions`, {
         withCredentials: true
       });
       
@@ -739,12 +739,12 @@ export default function UserAccessSettings() {
   const handleSaveRole = async (roleData) => {
     try {
       if (currentEditRole) {
-        await axios.put(`${API_BASE}/roles/${currentEditRole.key}`, roleData, {
+        await axios.put(`${API_BASE}/users/roles/${currentEditRole.key}`, roleData, {
           withCredentials: true
         });
         alert("Role berhasil diupdate!");
       } else {
-        await axios.post(`${API_BASE}/roles`, roleData, {
+        await axios.post(`${API_BASE}/users/roles`, roleData, {
           withCredentials: true
         });
         alert("Role baru berhasil ditambahkan!");
@@ -759,7 +759,7 @@ export default function UserAccessSettings() {
 
   const handleDeleteRole = async (roleKey) => {
     try {
-      await axios.delete(`${API_BASE}/roles/${roleKey}`, {
+      await axios.delete(`${API_BASE}/users/roles/${roleKey}`, {
         withCredentials: true
       });
       alert("Role berhasil dihapus!");
@@ -774,12 +774,12 @@ export default function UserAccessSettings() {
  const handleSavePermission = async (permissionData) => {
     try {
       if (currentEditPermission) {
-        await axios.put(`${API_BASE}/permissions/${currentEditPermission.key}`, permissionData, {
+        await axios.put(`${API_BASE}/users/permissions/${currentEditPermission.key}`, permissionData, {
           withCredentials: true
         });
         alert("Permission berhasil diupdate!");
       } else {
-        await axios.post(`${API_BASE}/permissions`, permissionData, {
+        await axios.post(`${API_BASE}/users/permissions`, permissionData, {
           withCredentials: true
         });
         alert("Permission baru berhasil ditambahkan!");
@@ -794,7 +794,7 @@ export default function UserAccessSettings() {
 
   const handleDeletePermission = async (permissionKey) => {
     try {
-      await axios.delete(`${API_BASE}/permissions/${permissionKey}`, {
+      await axios.delete(`${API_BASE}/users/permissions/${permissionKey}`, {
         withCredentials: true
       });
       alert("Permission berhasil dihapus!");
