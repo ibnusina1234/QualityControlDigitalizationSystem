@@ -11,8 +11,7 @@ const jwt = require("jsonwebtoken");
 const PDFDocument = require("pdfkit");
 const { body, validationResult } = require("express-validator");
 const { v4: uuidv4 } = require("uuid");
-const { updateProfileSchema } = require("../Validations/userValidations");\
-const jwt = require('jsonwebtoken'); // ✅ WAJIB
+const { updateProfileSchema } = require("../Validations/userValidations");
 
 // Konfigurasi Nodemailer
 const transporter = nodemailer.createTransport({
@@ -286,13 +285,6 @@ const sendApprovalEmail = async (email, nama_lengkap) => {
     // throw err; // ❌ Hanya lempar jika ingin gagal total (sudah tidak direkomendasikan untuk route)
   }
 };
-
-// Login user
-const jwt = require('jsonwebtoken'); // ✅ TAMBAHKAN IMPORT JWT
-const bcrypt = require('bcrypt'); // ✅ PASTIKAN ADA IMPORT BCRYPT
-const { validationResult } = require('express-validator'); // ✅ TAMBAHKAN IMPORT
-const db = require('../database/db'); // ✅ PASTIKAN PATH BENAR
-const logActivity = require('../helpers/logger'); // ✅ PASTIKAN PATH BENAR
 
 exports.loginUser = async (req, res) => {
   try {
