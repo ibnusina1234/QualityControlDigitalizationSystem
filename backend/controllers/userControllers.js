@@ -339,7 +339,7 @@ exports.loginUser = async (req, res) => {
     const mustChangePassword = user.last_change_password === null;
 
     // Buat payload untuk JWT
-    v// Modify the payload creation:
+    // Modify the payload creation:
 const payload = {
   user: {  // Wrap user data in a 'user' object
     id: user.id,
