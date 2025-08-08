@@ -341,7 +341,6 @@ useEffect(() => {
     try {
       setLoading(true);
 
-      // Use Promise.all for parallel requests
       const [homePageResponse, countResponse] = await Promise.all([
         axios.get(`${process.env.REACT_APP_API_BASE_URL}/homeEditing/HomePages`),
         axios.get(`${process.env.REACT_APP_API_BASE_URL}/users/countQcUser`)
@@ -352,7 +351,15 @@ useEffect(() => {
       setCompanyImages(data.companyImages || []);
       setDivisions(data.divisions || []);
       setDivisionMembers(data.divisionMembers || []);
-      setPageContent(data.pageContent || pageContent);
+      
+      // Use the initial pageContent as fallback, not the state
+      setPageContent(data.pageContent || {
+        hero_title: 'Quality Control Team',
+        hero_subtitle: 'Driven by the spirit of Collaborative Excellence',
+        about_description: 'We are the Quality Control team, united to uphold quality and accelerate innovation at every step.',
+        mission_text: 'One Team, One Mission — Together, we strive to deliver outstanding products.'
+      });
+      
       setCount(countResponse.data.count);
 
     } catch (err) {
@@ -365,7 +372,7 @@ useEffect(() => {
   };
 
   fetchData();
-}, [pageContent]); // Add pageContent as dependency since it's used in fallback
+}, []);// Add pageContent as dependency since it's used in fallback
 
   const handleDivisionClick = (division) => {
     setSelectedDivision(division);
