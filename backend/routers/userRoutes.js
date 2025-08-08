@@ -266,30 +266,35 @@ router.get("/countQcUser", dynamicRateLimiter, userController.countQCUsers);
 // 🔹 Mendapatkan data token
 // Add better error handling in your backend
 router.get("/auth/me", verifyToken, async (req, res) => {
-  if (!req.user) return res.status(401).json({ message: "Unauthorized" });
+  console.log("=== AUTH/ME ENDPOINT START ===");
+  console.log("req.user exists:", !!req.user);
+  console.log("req.user content:", req.user);
+  
+  if (!req.user) {
+    console.log("❌ No req.user - returning 401");
+    return res.status(401).json({ message: "Unauthorized" });
+  }
+
+  console.log("✅ req.user exists, proceeding...");
+  console.log("userrole:", req.user.userrole);
 
   try {
-    console.log("User object:", req.user); // Debug 1
-    console.log("Role key:", req.user.userrole); // Debug 2
-    
-    // Check if userrole exists
-    if (!req.user.userrole) {
-      return res.status(400).json({ message: "User role not found in token" });
-    }
-
+    console.log("📍 Step 1: Querying roles table");
     const [roleResult] = await db.execute(
       "SELECT id FROM roles WHERE role_key = ?",
       [req.user.userrole]
     );
-    
-    console.log("Role query result:", roleResult);
+    console.log("📍 Step 1 result:", roleResult);
 
     if (roleResult.length === 0) {
-      return res.status(404).json({ message: `Role '${req.user.userrole}' not found in database` });
+      console.log("❌ Role not found in database");
+      return res.status(404).json({ message: "Role not found" });
     }
 
     const roleId = roleResult[0].id;
+    console.log("📍 Step 2: Found roleId:", roleId);
 
+    console.log("📍 Step 3: Querying permissions");
     const [permissions] = await db.execute(`
       SELECT 
         p.permission_key,
@@ -303,7 +308,9 @@ router.get("/auth/me", verifyToken, async (req, res) => {
       WHERE 
         rdp.role_id = ?
     `, [roleId]);
+    console.log("📍 Step 3 result:", permissions);
 
+    console.log("📍 Step 4: Sending response");
     res.json({
       id: req.user.id,
       email: req.user.email,
@@ -314,12 +321,26 @@ router.get("/auth/me", verifyToken, async (req, res) => {
       img: req.user.img,
       permissions: permissions,
     });
+    console.log("✅ Response sent successfully");
+    
   } catch (err) {
-    console.error("Full error:", err);
-    console.error("Error stack:", err.stack); // Add stack trace
+    console.error("=== AUTH/ME ERROR ===");
+    console.error("Error message:", err.message);
+    console.error("Error code:", err.code);
+    console.error("Error sqlState:", err.sqlState);
+    console.error("Error errno:", err.errno);
+    console.error("Full error object:", err);
+    console.error("Stack trace:", err.stack);
+    console.error("========================");
+    
     res.status(500).json({ 
       message: "Internal server error",
-      error: process.env.NODE_ENV === 'development' ? err.message : 'Database error'
+      error: process.env.NODE_ENV === 'development' ? err.message : 'Database error',
+      details: process.env.NODE_ENV === 'development' ? {
+        code: err.code,
+        errno: err.errno,
+        sqlState: err.sqlState
+      } : undefined
     });
   }
 });
