@@ -11,7 +11,8 @@ const jwt = require("jsonwebtoken");
 const PDFDocument = require("pdfkit");
 const { body, validationResult } = require("express-validator");
 const { v4: uuidv4 } = require("uuid");
-const { updateProfileSchema } = require("../Validations/userValidations");
+const { updateProfileSchema } = require("../Validations/userValidations");\
+const jwt = require('jsonwebtoken'); // ✅ WAJIB
 
 // Konfigurasi Nodemailer
 const transporter = nodemailer.createTransport({
