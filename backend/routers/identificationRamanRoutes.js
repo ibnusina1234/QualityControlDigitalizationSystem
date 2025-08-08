@@ -9,14 +9,17 @@ dayjs.extend(require("dayjs/plugin/utc"));
 dayjs.extend(require("dayjs/plugin/timezone"));
 const verifyToken = require("../middleware/auth");
 
+// PERBAIKAN: Konsisten gunakan satu database connection yang sama
+const db = require("../database/db"); // Pastikan ini mysql2 pool with promise
+
 // CREATE: Warehouse create new request (only material, operator)
 router.post("/request", ramanController.createRamanRequest);
 
 // GET: All requests across all batch (global dashboard)
 router.get("/all-requests", async (req, res) => {
-  const db = require("../database/dbForKS");
   try {
-    const [rows] = await db.query(`
+    // PERBAIKAN: Gunakan execute untuk prepared statement dengan mysql2
+    const [rows] = await db.execute(`
       SELECT 
         r.id, 
         r.batch_id, 
@@ -44,7 +47,7 @@ router.get("/all-requests", async (req, res) => {
 
     // Add identified vats for each request
     for (const req of rows) {
-      const [vats] = await db.query(
+      const [vats] = await db.execute(
         `SELECT vat_number FROM request_vats WHERE request_id = ? ORDER BY vat_number ASC`,
         [req.id]
       );
@@ -84,15 +87,17 @@ router.get("/all-requests", async (req, res) => {
 
 // Get materialId by name
 router.get("/material-id", async (req, res) => {
-  const db = require("../database/dbForKS");
   const { name } = req.query;
   if (!name) return res.status(400).json({ message: "Missing name" });
-  const [rows] = await db.query("SELECT id FROM materialraman WHERE name = ?", [
-    name,
-  ]);
-  if (!rows.length)
-    return res.status(404).json({ message: "Material not found" });
-  res.json({ id: rows[0].id });
+  
+  try {
+    const [rows] = await db.execute("SELECT id FROM materialraman WHERE name = ?", [name]);
+    if (!rows.length) return res.status(404).json({ message: "Material not found" });
+    res.json({ id: rows[0].id });
+  } catch (err) {
+    console.error("Error in /material-id:", err.message);
+    res.status(500).json({ message: err.message });
+  }
 });
 
 router.get("/sheet-batch", async (req, res) => {
@@ -103,22 +108,28 @@ router.get("/sheet-batch", async (req, res) => {
     const batchList = await getBatchListFromSheet(material_name);
     res.json(batchList);
   } catch (err) {
+    console.error("Error in /sheet-batch:", err.message);
     res.status(500).json({ message: err.message });
   }
 });
 
 // Check batch exist by material_id & batch_number
 router.get("/batch-exist", async (req, res) => {
-  const db = require("../database/dbForKS");
   const { material_id, batch_number } = req.query;
   if (!material_id || !batch_number)
     return res.status(400).json({ message: "Missing params" });
-  const [rows] = await db.query(
-    "SELECT id, vat_count FROM batches WHERE material_id = ? AND batch_number = ?",
-    [material_id, batch_number]
-  );
-  if (!rows.length) return res.json({ exists: false });
-  res.json({ exists: true, vat_count: rows[0].vat_count });
+    
+  try {
+    const [rows] = await db.execute(
+      "SELECT id, vat_count FROM batches WHERE material_id = ? AND batch_number = ?",
+      [material_id, batch_number]
+    );
+    if (!rows.length) return res.json({ exists: false });
+    res.json({ exists: true, vat_count: rows[0].vat_count });
+  } catch (err) {
+    console.error("Error in /batch-exist:", err.message);
+    res.status(500).json({ message: err.message });
+  }
 });
 
 // GET: All requests for a specific batch
@@ -153,7 +164,6 @@ router.get(
   "/batches/:batch_number/used-vats",
   ramanController.getUsedVatsForBatch
 );
-
 
 // PATCH: Edit request with reason (audit trail)
 router.patch(
