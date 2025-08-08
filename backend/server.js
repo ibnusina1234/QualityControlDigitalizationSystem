@@ -83,6 +83,7 @@ app.use("/uploads", express.static(path.join(__dirname, "public/uploads")));
 app.use("/users", userRoutes);
 app.use("/cards", ksRoutes);
 app.use("/api", uploadRoute);
+app.use("/Raman", raman);
 app.use("/dashboardRMPM", rmpmRoutes);
 app.use("/homeEditing", HomePages);
 app.use("/bot", bot);

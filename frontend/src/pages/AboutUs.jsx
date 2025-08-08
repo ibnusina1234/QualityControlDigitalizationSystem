@@ -8,8 +8,8 @@ const getImageUrl = (url) => {
   const placeholder = '/default-profile.png';
   if (!url) return placeholder;
 
-  if (url.startsWith('http')) {
-    const match = url.match(/\/file\/d\/([^\/]+)/) || url.match(/id=([^&]+)/);
+if (url.startsWith('http')) {
+    const match = url.match(/\/file\/d\/([^/]+)/) || url.match(/id=([^&]+)/);
     if (match) {
       return `${process.env.REACT_APP_API_BASE_URL}/homeEditing/stream/${match[1]}`;
     }
@@ -78,7 +78,6 @@ const CompanyImageCard = ({ image, index }) => {
   const shadow = useColorModeValue("shadow-lg", "shadow-2xl");
   const textTitle = useColorModeValue("text-gray-900", "text-white");
   const textDesc = useColorModeValue("text-gray-700", "text-gray-200");
-    const textColor = useColorModeValue("text-gray-800", "text-white");
 
   return (
     <div 
@@ -337,36 +336,36 @@ const AboutUs = () => {
   }, []);
 
   // Fetch all data
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setLoading(true);
+useEffect(() => {
+  const fetchData = async () => {
+    try {
+      setLoading(true);
 
-        // Use Promise.all for parallel requests
-        const [homePageResponse, countResponse] = await Promise.all([
-          axios.get(`${process.env.REACT_APP_API_BASE_URL}/homeEditing/HomePages`),
-          axios.get(`${process.env.REACT_APP_API_BASE_URL}/users/countQcUser`)
-        ]);
+      // Use Promise.all for parallel requests
+      const [homePageResponse, countResponse] = await Promise.all([
+        axios.get(`${process.env.REACT_APP_API_BASE_URL}/homeEditing/HomePages`),
+        axios.get(`${process.env.REACT_APP_API_BASE_URL}/users/countQcUser`)
+      ]);
 
-        const data = homePageResponse.data;
-        setPersonnel(data.personnel || []);
-        setCompanyImages(data.companyImages || []);
-        setDivisions(data.divisions || []);
-        setDivisionMembers(data.divisionMembers || []);
-        setPageContent(data.pageContent || pageContent);
-        setCount(countResponse.data.count);
+      const data = homePageResponse.data;
+      setPersonnel(data.personnel || []);
+      setCompanyImages(data.companyImages || []);
+      setDivisions(data.divisions || []);
+      setDivisionMembers(data.divisionMembers || []);
+      setPageContent(data.pageContent || pageContent);
+      setCount(countResponse.data.count);
 
-      } catch (err) {
-        console.error('Error fetching data:', err);
-        setError('Failed to load data');
-        setCount('Error');
-      } finally {
-        setLoading(false);
-      }
-    };
+    } catch (err) {
+      console.error('Error fetching data:', err);
+      setError('Failed to load data');
+      setCount('Error');
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    fetchData();
-  }, []);
+  fetchData();
+}, [pageContent]); // Add pageContent as dependency since it's used in fallback
 
   const handleDivisionClick = (division) => {
     setSelectedDivision(division);
