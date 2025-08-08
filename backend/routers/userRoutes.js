@@ -1,6 +1,11 @@
 const express = require("express");
 const multer = require("multer");
 const verifyToken = require("../middleware/auth");
+// Debug import
+console.log("=== DEBUG MIDDLEWARE IMPORT ===");
+console.log("verifyToken type:", typeof verifyToken);
+console.log("verifyToken value:", verifyToken);
+console.log("================================");
 const logActivity = require("../helpers/logger");
 const validatePassword = require("../middleware/validatePassword");
 const { body } = require("express-validator");
