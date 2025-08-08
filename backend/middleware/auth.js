@@ -1,8 +1,4 @@
-const jwt = require('jsonwebtoken');
-require('dotenv').config();
-
 const verifyToken = (req, res, next) => {
-  // Ambil token dari header Authorization atau cookie
   let token = null;
   const authHeader = req.headers['authorization'];
   if (authHeader && authHeader.startsWith('Bearer ')) {
@@ -17,14 +13,14 @@ const verifyToken = (req, res, next) => {
 
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-   req.user = {
-      ...decoded.user,  // Unpack the nested user object
-      permissions: decoded.permissions
-    }; 
+    
+    // Token sudah berisi semua data yang diperlukan
+    req.user = decoded;
+    
+    console.log("✅ req.user set:", req.user);
     next();
   } catch (err) {
+    console.error("❌ JWT verification failed:", err.message);
     return res.status(403).json({ error: "Invalid or expired token" });
   }
 };
-
-module.exports = verifyToken;

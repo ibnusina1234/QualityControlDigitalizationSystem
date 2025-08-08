@@ -264,37 +264,45 @@ router.post(
 router.get("/countQcUser", dynamicRateLimiter, userController.countQCUsers);
 
 // 🔹 Mendapatkan data token
+// Add better error handling in your backend
 router.get("/auth/me", verifyToken, async (req, res) => {
   if (!req.user) return res.status(401).json({ message: "Unauthorized" });
 
   try {
-    console.log("Role key:", req.user.userrole);
+    console.log("User object:", req.user); // Debug 1
+    console.log("Role key:", req.user.userrole); // Debug 2
+    
+    // Check if userrole exists
+    if (!req.user.userrole) {
+      return res.status(400).json({ message: "User role not found in token" });
+    }
+
     const [roleResult] = await db.execute(
       "SELECT id FROM roles WHERE role_key = ?",
       [req.user.userrole]
     );
+    
     console.log("Role query result:", roleResult);
 
     if (roleResult.length === 0) {
-      return res.status(404).json({ message: "Role not found" });
+      return res.status(404).json({ message: `Role '${req.user.userrole}' not found in database` });
     }
 
     const roleId = roleResult[0].id;
 
-    // Query yang dimodifikasi - hanya ambil permission_key
-   const [permissions] = await db.execute(`
-      SELECT p.permission_key
-      FROM role_default_permissions rdp
-      JOIN permissions p ON rdp.permission_id = p.id
-      WHERE rdp.role_id = ?
-    `, [roleResult[0].id]).catch(err => {
-      console.error("Database Error (permissions):", err);
-      throw new Error("Permissions query failed");
-    });
-
-
-    // Ubah hasil query menjadi array of strings
-    const permissionKeys = permissions.map(p => p.permission_key);
+    const [permissions] = await db.execute(`
+      SELECT 
+        p.permission_key,
+        p.permission_name,
+        p.description,
+        p.category
+      FROM 
+        role_default_permissions rdp
+      JOIN 
+        permissions p ON rdp.permission_id = p.id
+      WHERE 
+        rdp.role_id = ?
+    `, [roleId]);
 
     res.json({
       id: req.user.id,
@@ -304,13 +312,14 @@ router.get("/auth/me", verifyToken, async (req, res) => {
       nama_lengkap: req.user.nama_lengkap,
       userrole: req.user.userrole,
       img: req.user.img,
-      permissions: permissionKeys // Sekarang hanya array of permission_key
+      permissions: permissions,
     });
   } catch (err) {
     console.error("Full error:", err);
+    console.error("Error stack:", err.stack); // Add stack trace
     res.status(500).json({ 
       message: "Internal server error",
-      error: err.message
+      error: process.env.NODE_ENV === 'development' ? err.message : 'Database error'
     });
   }
 });
