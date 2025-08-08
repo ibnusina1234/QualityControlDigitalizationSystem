@@ -64,6 +64,32 @@ app.options(
   })
 );
 
+app.use((req, res, next) => {
+  if (req.path.startsWith("/admin/")) {
+    return next();
+  }
+
+  // Log blocked user attempts tanpa blocking request
+  try {
+    const token = req.headers.authorization?.split(" ")[1];
+    if (token) {
+      const jwt = require("jsonwebtoken");
+      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+      const { isUserBlocked } = require("./rateLimiter");
+
+      if (isUserBlocked(decoded.id)) {
+        console.log(
+          `⚠️  Blocked user ${decoded.id} attempted: ${req.method} ${req.path}`
+        );
+      }
+    }
+  } catch (err) {
+    // Ignore errors dalam logging
+  }
+
+  next();
+});
+
 app.use(express.json({ limit: "100mb" }));
 app.use(express.urlencoded({ extended: true, limit: "100mb" }));
 app.use(express.json());
