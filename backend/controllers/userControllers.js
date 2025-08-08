@@ -287,11 +287,18 @@ const sendApprovalEmail = async (email, nama_lengkap) => {
 };
 
 // Login user
+const jwt = require('jsonwebtoken'); // ✅ TAMBAHKAN IMPORT JWT
+const bcrypt = require('bcrypt'); // ✅ PASTIKAN ADA IMPORT BCRYPT
+const { validationResult } = require('express-validator'); // ✅ TAMBAHKAN IMPORT
+const db = require('../database/db'); // ✅ PASTIKAN PATH BENAR
+const logActivity = require('../helpers/logger'); // ✅ PASTIKAN PATH BENAR
+
 exports.loginUser = async (req, res) => {
   try {
     // Cek validasi input
     const errors = validationResult(req);
     const BACKEND_URL = process.env.BACKEND_URL;
+    
     if (!errors.isEmpty()) {
       return res.status(400).json({ errors: errors.array() });
     }
@@ -299,9 +306,7 @@ exports.loginUser = async (req, res) => {
     const { email, password } = req.body;
 
     // Query database untuk mencari user berdasarkan email
-    const [users] = await db.execute("SELECT * FROM user WHERE email = ?", [
-      email,
-    ]);
+    const [users] = await db.execute("SELECT * FROM user WHERE email = ?", [email]);
 
     if (users.length === 0) {
       return res.status(404).json({ error: "User not found" });
@@ -311,9 +316,9 @@ exports.loginUser = async (req, res) => {
 
     // Pastikan status user adalah 'Active' sebelum melanjutkan
     if (user.status !== "Active") {
-      return res
-        .status(403)
-        .json({ error: "User is not Active. Please Contact Administrator" });
+      return res.status(403).json({ 
+        error: "User is not Active. Please Contact Administrator" 
+      });
     }
 
     // Cek password
@@ -330,7 +335,7 @@ exports.loginUser = async (req, res) => {
        WHERE rdp.role_id = (
          SELECT id FROM roles WHERE role_key = ?
        )`,
-      [user.userrole] // Menggunakan userrole sebagai role_key
+      [user.userrole]
     );
     
     const userPermissions = permissions.map((p) => p.permission_key);
@@ -338,21 +343,19 @@ exports.loginUser = async (req, res) => {
     // Cek apakah user harus reset password
     const mustChangePassword = user.last_change_password === null;
 
-    // Buat payload untuk JWT
-    // Modify the payload creation:
-const payload = {
-  user: {  // Wrap user data in a 'user' object
-    id: user.id,
-    email: user.email,
-    userrole: user.userrole,
-    jabatan: user.jabatan,
-    nama_lengkap: user.nama_lengkap,
-    inisial: user.inisial,
-    img: user.img ? `${BACKEND_URL}/${user.img.replace("public/", "")}` : null,
-    mustChangePassword
-  },
-  permissions: userPermissions  // Keep permissions separate
-};
+    // ✅ PERBAIKI PAYLOAD - SESUAIKAN DENGAN MIDDLEWARE
+    // Sesuai dengan verifyToken yang expect flat structure
+    const payload = {
+      id: user.id,
+      email: user.email,
+      userrole: user.userrole,
+      jabatan: user.jabatan,
+      nama_lengkap: user.nama_lengkap,
+      inisial: user.inisial,
+      img: user.img ? `${BACKEND_URL}/${user.img.replace("public/", "")}` : null,
+      mustChangePassword,
+      permissions: userPermissions
+    };
 
     // Generate token JWT
     const token = jwt.sign(payload, process.env.JWT_SECRET, {
@@ -362,7 +365,7 @@ const payload = {
     // Set token ke cookie HttpOnly
     res.cookie("token", token, {
       httpOnly: true,
-      secure: false,
+      secure: process.env.NODE_ENV === 'production', // ✅ DINAMIS BERDASARKAN ENV
       sameSite: "Strict",
       maxAge: 3600000, // 1 jam
     });
@@ -370,28 +373,37 @@ const payload = {
     // Hapus password dari response
     const { password: _, ...userWithoutPassword } = user;
 
-    logActivity(user.id, "Login", req).catch((logErr) => {
+    // Log activity
+    try {
+      await logActivity(user.id, "Login", req);
+    } catch (logErr) {
       if (process.env.NODE_ENV !== "production") {
         console.warn("Gagal log aktivitas:", logErr.message);
       }
-    });
+    }
 
+    // ✅ RESPONSE SUCCESS
     res.json({
       message: "Login successful",
       user: {
-        ...userWithoutPassword,
-        img: user.img
-          ? `${BACKEND_URL}/${user.img.replace("public/", "")}`
-          : null,
+        id: user.id,
+        email: user.email,
+        userrole: user.userrole,
+        jabatan: user.jabatan,
+        nama_lengkap: user.nama_lengkap,
+        inisial: user.inisial,
+        img: user.img ? `${BACKEND_URL}/${user.img.replace("public/", "")}` : null,
         mustChangePassword,
         permissions: userPermissions,
       },
     });
+
   } catch (err) {
-    if (process.env.NODE_ENV !== "production") {
-      console.error("Login error:", err?.message || err);
-    }
-    res.status(500).json({ error: "Internal server error" });
+    console.error("Login error:", err?.message || err);
+    res.status(500).json({ 
+      error: "Internal server error",
+      details: process.env.NODE_ENV === 'development' ? err.message : undefined
+    });
   }
 };
 
