@@ -315,7 +315,11 @@ router.get("/auth/me", verifyToken, async (req, res) => {
     `, [roleId]);
     console.log("📍 Step 3 result:", permissions);
 
-    console.log("📍 Step 4: Sending response");
+    // Convert permissions to array of permission_key only
+    const permissionKeys = permissions.map(permission => permission.permission_key);
+    console.log("📍 Step 4: Converted permissions to keys:", permissionKeys);
+
+    console.log("📍 Step 5: Sending response");
     res.json({
       id: req.user.id,
       email: req.user.email,
@@ -324,7 +328,7 @@ router.get("/auth/me", verifyToken, async (req, res) => {
       nama_lengkap: req.user.nama_lengkap,
       userrole: req.user.userrole,
       img: req.user.img,
-      permissions: permissions,
+      permissions: permissionKeys,
     });
     console.log("✅ Response sent successfully");
     
