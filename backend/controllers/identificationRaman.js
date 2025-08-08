@@ -3,7 +3,7 @@ require("dayjs/plugin/utc");
 require("dayjs/plugin/timezone");
 dayjs.extend(require("dayjs/plugin/utc"));
 dayjs.extend(require("dayjs/plugin/timezone"));
-const db1 = require("../database/db"); // MySQL2 pool dengan promise
+const db = require("../database/db"); // MySQL2 pool dengan promise
 
 // --- Logging Function ---
 // Fungsi ini menggunakan MySQL2 pool dengan promise
@@ -13,7 +13,7 @@ async function logActivity(userId, activity, req) {
   const userAgent = req.headers["user-agent"] || "Unknown";
 
   try {
-    await db1.execute(
+    await db.execute(
       `INSERT INTO user_logs (user_id, activity, ip_address, user_agent)
        VALUES (?, ?, ?, ?)`,
       [userId, activity, ipAddress, userAgent]
@@ -27,7 +27,7 @@ async function logActivity(userId, activity, req) {
 // --- End Logging Function ---
 
 // REVISI: gunakan ISO 8601 + offset untuk semua pengiriman waktu ke frontend!
-// Waktu UTC untuk disimpan ke database (db1 kolom DATETIME, tanpa offset)
+// Waktu UTC untuk disimpan ke database (db kolom DATETIME, tanpa offset)
 function nowUTC() {
   return dayjs().utc().format("YYYY-MM-DD HH:mm:ss"); // Simpan dalam UTC
 }
@@ -42,7 +42,7 @@ exports.getRequestsByBatch = async (req, res) => {
   const { batch_number } = req.params;
   try {
     // Get batch & material
-    const [batchRows] = await db1.execute(
+    const [batchRows] = await db.execute(
       `SELECT b.id, b.batch_number, b.vat_count, b.material_id, m.name AS material
              FROM batches b JOIN materialraman m ON b.material_id = m.id
              WHERE b.batch_number = ?`,
@@ -53,7 +53,7 @@ exports.getRequestsByBatch = async (req, res) => {
     }
 
     // Get requests
-    const [requests] = await db1.execute(
+    const [requests] = await db.execute(
       `SELECT r.*, u.name AS operator_name, i.name AS inspector_name
              FROM raman_requests r
              JOIN user u ON r.operator_id = u.id
@@ -64,7 +64,7 @@ exports.getRequestsByBatch = async (req, res) => {
     );
     // Get vats for each request
     for (let reqRow of requests) {
-      const [vats] = await db1.execute(
+      const [vats] = await db.execute(
         `SELECT vat_number FROM request_vats WHERE request_id = ? ORDER BY vat_number ASC`,
         [reqRow.id]
       );
@@ -77,7 +77,7 @@ exports.getRequestsByBatch = async (req, res) => {
     }
 
     // Get all identified vats for the batch (across all requests)
-    const [allVats] = await db1.execute(
+    const [allVats] = await db.execute(
       `SELECT DISTINCT rv.vat_number
              FROM request_vats rv
              JOIN raman_requests rr ON rv.request_id = rr.id
@@ -108,14 +108,14 @@ exports.getUsedVatsForBatch = async (req, res) => {
   const { batch_number } = req.params;
   const { material_id } = req.query;
   try {
-    const [batchRows] = await db1.execute(
+    const [batchRows] = await db.execute(
       `SELECT id FROM batches WHERE batch_number = ? AND material_id = ?`,
       [batch_number, material_id]
     );
     if (!batchRows.length) return res.json([]);
     const batch_id = batchRows[0].id;
 
-    const [requests] = await db1.execute(
+    const [requests] = await db.execute(
       `SELECT id FROM raman_requests WHERE batch_id = ?`,
       [batch_id]
     );
@@ -123,7 +123,7 @@ exports.getUsedVatsForBatch = async (req, res) => {
     if (!requestIds.length) return res.json([]);
 
     const placeholders = requestIds.map(() => "?").join(",");
-    const [vats] = await db1.execute(
+    const [vats] = await db.execute(
       `SELECT DISTINCT vat_number FROM request_vats WHERE request_id IN (${placeholders})`,
       requestIds
     );
@@ -152,12 +152,12 @@ exports.createRamanRequest = async (req, res) => {
   
   try {
     // 1. Handle material (sama seperti sebelumnya)
-    let [material] = await db1.execute(
+    let [material] = await db.execute(
       `SELECT id FROM materialraman WHERE name = ?`,
       [material_name]
     );
     if (!material.length) {
-      const [result] = await db1.execute(
+      const [result] = await db.execute(
         `INSERT INTO materialraman (name) VALUES (?)`,
         [material_name]
       );
@@ -166,7 +166,7 @@ exports.createRamanRequest = async (req, res) => {
     const material_id = material[0].id;
 
     // 2. Handle batch (TANPA tanggal_timbang)
-    let [batchRows] = await db1.execute(
+    let [batchRows] = await db.execute(
       `SELECT id, vat_count FROM batches WHERE batch_number = ? AND material_id = ?`,
       [batch_number, material_id]
     );
@@ -174,7 +174,7 @@ exports.createRamanRequest = async (req, res) => {
     let batch_id;
     if (!batchRows.length) {
       // INSERT batch TANPA tanggal_timbang
-      const [result] = await db1.execute(
+      const [result] = await db.execute(
         `INSERT INTO batches (batch_number, material_id, vat_count) VALUES (?, ?, ?)`,
         [batch_number, material_id, vat_count]
       );
@@ -208,7 +208,7 @@ exports.createRamanRequest = async (req, res) => {
     });
 
     // 5. INSERT ke raman_requests DENGAN tanggal_timbang
-    const [result] = await db1.execute(
+    const [result] = await db.execute(
       `INSERT INTO raman_requests (batch_id, material_id, operator_id, requested_at, tanggal_timbang, status)
        VALUES (?, ?, ?, ?, ?, 'request')`,
       [batch_id, material_id, operator_id, waktuRequest, tanggalTimbangFormatted]
@@ -234,7 +234,7 @@ exports.progressRequest = async (req, res) => {
   const { request_id } = req.params;
   const { inspector_id, processed_at } = req.body;
   try {
-    const [reqRows] = await db1.execute(
+    const [reqRows] = await db.execute(
       `SELECT id FROM raman_requests WHERE id = ?`,
       [request_id]
     );
@@ -247,7 +247,7 @@ exports.progressRequest = async (req, res) => {
       ? dayjs(processed_at).utc().format("YYYY-MM-DD HH:mm:ss")
       : nowUTC();
 
-    await db1.execute(
+    await db.execute(
       `UPDATE raman_requests
              SET status = 'progress',
              inspector_id = ?, processed_at = ?
@@ -271,13 +271,13 @@ exports.deleteRequest = async (req, res) => {
   const { request_id } = req.params;
   try {
     // Dapatkan info batch untuk log
-    const [requestDetails] = await db1.execute(
+    const [requestDetails] = await db.execute(
       `SELECT batch_id FROM raman_requests WHERE id = ?`,
       [request_id]
     );
     let batchNumber = 'Unknown Batch';
     if (requestDetails.length > 0) {
-      const [batchInfo] = await db1.execute(
+      const [batchInfo] = await db.execute(
         `SELECT batch_number FROM batches WHERE id = ?`,
         [requestDetails[0].batch_id]
       );
@@ -286,8 +286,8 @@ exports.deleteRequest = async (req, res) => {
       }
     }
 
-    await db1.execute("DELETE FROM request_vats WHERE request_id = ?", [request_id]);
-    await db1.execute("DELETE FROM raman_requests WHERE id = ?", [request_id]);
+    await db.execute("DELETE FROM request_vats WHERE request_id = ?", [request_id]);
+    await db.execute("DELETE FROM raman_requests WHERE id = ?", [request_id]);
 
     // Log the activity (PASTIKAN di-await dan cek error-nya)
     if (req.user?.id) {
@@ -317,10 +317,10 @@ exports.submitVats = async (req, res) => {
       return res.status(400).json({ message: "Vats kosong" });
     }
     // Delete existing vats for this request to replace them with new ones
-    await db1.execute("DELETE FROM request_vats WHERE request_id = ?", [request_id]);
+    await db.execute("DELETE FROM request_vats WHERE request_id = ?", [request_id]);
 
     for (let vat of vats) {
-      await db1.execute(
+      await db.execute(
         `INSERT INTO request_vats (request_id, vat_number)
              VALUES (?, ?)`,
         [request_id, vat]
@@ -343,7 +343,7 @@ exports.completeRequest = async (req, res) => {
   const { request_id } = req.params;
   const { completed_at } = req.body;
   try {
-    const [reqRows] = await db1.execute(
+    const [reqRows] = await db.execute(
       `SELECT batch_id FROM raman_requests WHERE id = ?`,
       [request_id]
     );
@@ -352,7 +352,7 @@ exports.completeRequest = async (req, res) => {
     }
     const batch_id = reqRows[0].batch_id;
 
-    const [allVats] = await db1.execute(
+    const [allVats] = await db.execute(
       `SELECT DISTINCT rv.vat_number
              FROM request_vats rv
              JOIN raman_requests rr ON rv.request_id = rr.id
@@ -366,7 +366,7 @@ exports.completeRequest = async (req, res) => {
       ? dayjs(completed_at).utc().format("YYYY-MM-DD HH:mm:ss")
       : nowUTC();
 
-    await db1.execute(
+    await db.execute(
       `UPDATE raman_requests
              SET status = 'complete',
              completed_at = ?
@@ -394,11 +394,11 @@ exports.editRequestWithReason = async (req, res) => {
   const { request_id } = req.params;
   const { user_id, field, old_value, new_value, reason, vat_number } = req.body;
   try {
-    await db1.execute(`UPDATE raman_requests SET ${field} = ? WHERE id = ?`, [
+    await db.execute(`UPDATE raman_requests SET ${field} = ? WHERE id = ?`, [
       new_value,
       request_id,
     ]);
-    await db1.execute(
+    await db.execute(
       `INSERT INTO edit_logs (request_id, user_id, vat_number, old_value, new_value, reason)
              VALUES (?, ?, ?, ?, ?, ?)`,
       [request_id, user_id, vat_number || null, old_value, new_value, reason]
@@ -422,7 +422,7 @@ exports.editCompleteRequest = async (req, res) => {
 
   try {
     // 1. Validate the request ID
-    const [reqRows] = await db1.execute(
+    const [reqRows] = await db.execute(
       `SELECT id FROM raman_requests WHERE id = ?`,
       [request_id]
     );
@@ -431,19 +431,19 @@ exports.editCompleteRequest = async (req, res) => {
     }
 
     // 2. Get old vats BEFORE deleting them
-    const [oldVatsRows] = await db1.execute(
+    const [oldVatsRows] = await db.execute(
       `SELECT vat_number FROM request_vats WHERE request_id = ?`,
       [request_id]
     );
     const oldVats = oldVatsRows.map(v => v.vat_number).join(', ');
 
     // 3. Clear existing vats for this request
-    await db1.execute("DELETE FROM request_vats WHERE request_id = ?", [request_id]);
+    await db.execute("DELETE FROM request_vats WHERE request_id = ?", [request_id]);
 
     // 4. Insert the new/updated vats
     if (selectedVats && Array.isArray(selectedVats) && selectedVats.length > 0) {
       for (let vat of selectedVats) {
-        await db1.execute(
+        await db.execute(
           `INSERT INTO request_vats (request_id, vat_number) VALUES (?, ?)`,
           [request_id, vat]
         );
@@ -470,7 +470,7 @@ exports.editCompleteRequest = async (req, res) => {
 exports.getRamanMonitoringData = async (req, res) => {
   try {
     // Ambil data utama dari raman_requests
-    const [requests] = await db1.execute(`
+    const [requests] = await db.execute(`
       SELECT
         rr.id AS request_id,
         rr.status,
@@ -492,7 +492,7 @@ exports.getRamanMonitoringData = async (req, res) => {
     `);
 
     // Ambil data identifikasi (vat), tapi include batch_number
-    const [vats] = await db1.execute(`
+    const [vats] = await db.execute(`
       SELECT
         rv.id,
         rv.vat_number,
