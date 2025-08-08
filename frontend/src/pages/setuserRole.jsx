@@ -597,7 +597,7 @@ export default function UserAccessSettings() {
   const [confirmationData, setConfirmationData] = useState({});
 
   // API Base URL - sesuaikan dengan backend Anda
-  const API_BASE = "http://localhost:8081/users";
+  const API_BASE = process.env.REACT_APP_API_BASE_URL;
 
    // Fetch all permissions and roles (with access) after mount
   useEffect(() => {
