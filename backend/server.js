@@ -6,6 +6,7 @@ const path = require("path");
 const userRoutes = require("./routers/userRoutes");
 const ksRoutes = require("./routers/cardSamplingRoutes");
 const raman = require("./routers/identificationRamanRoutes");
+const admin =require("./routers/adminRoutes");
 const HomePages = require("./routers/homePagesRoutes");
 const bot = require("./routers/telegramBotRoutes");
 const http = require("http");
@@ -113,6 +114,9 @@ app.use("/Raman", raman);
 app.use("/dashboardRMPM", rmpmRoutes);
 app.use("/homeEditing", HomePages);
 app.use("/bot", bot);
+
+// Rate limit management routes - harus setelah middleware lain
+app.use("/admin", rateLimitRoutes);
 
 // Handle 404 Not Found
 app.use((req, res) => {
