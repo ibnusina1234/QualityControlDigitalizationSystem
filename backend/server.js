@@ -32,7 +32,7 @@ const {
 } = require("./middleware/rateLimit"); // PASTIKAN NAMA FILE BENAR
 
 // Import auth middleware  
-const { verifyToken } = require("./middleware/auth");
+const verifyToken = require("./middleware/auth");
 
 // OAuth2Client setup (jika diperlukan)
 const oAuth2Client = new google.auth.OAuth2(
