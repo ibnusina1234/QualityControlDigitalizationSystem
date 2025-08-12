@@ -110,6 +110,7 @@ app.use("/users/*", (req, res, next) => {
   if (req.path === "/login" || req.path === "/register") {
     return next();
   }
+  // Gunakan sebagai middleware
   verifyToken(req, res, next);
 });
 
