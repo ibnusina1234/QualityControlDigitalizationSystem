@@ -1,3 +1,4 @@
+// controllers/rateLimitController.js - FIXED VERSION
 const {
   getBlockedStatus,
   unblockIdentifier,
@@ -5,14 +6,16 @@ const {
   isUserBlocked,
   addToWhitelist,
   removeFromWhitelist,
-} = require("../middleware/rateLimit");
-const logActivity = require("../helpers/logger"); // Pastikan logger menerima id
+} = require("../middleware/rateLimit"); // FIXED: Ubah dari rateLimit ke rateLimiter
+const logActivity = require("../helpers/logger");
 
 const rateLimitController = {
   // GET /admin/blocked-status - Mendapatkan status semua user yang diblok
   getBlockedStatus: async (req, res) => {
     try {
       const blockedData = getBlockedStatus();
+
+      console.log(`📊 Admin ${req.user?.email || req.user?.id} requested blocked status: ${Object.keys(blockedData).length} blocks`);
 
       res.json({
         success: true,
@@ -63,12 +66,15 @@ const rateLimitController = {
         },
       });
 
-      console.log(`Admin ${req.user.id} blocked user ${userId} (${userEmail})`);
-      await logActivity(
-        req.user?.id,
-        `Block User ${userId} (${userEmail}) for ${blockDuration}ms Reason: ${blockReason}`,
-        req
-      );
+      console.log(`👤 Admin ${req.user?.email || req.user?.id} blocked user ${userId} (${userEmail})`);
+      
+      if (logActivity) {
+        await logActivity(
+          req.user?.id,
+          `Block User ${userId} (${userEmail}) for ${blockDuration}ms Reason: ${blockReason}`,
+          req
+        );
+      }
     } catch (error) {
       console.error("Error blocking user:", error);
       res.status(500).json({
@@ -94,7 +100,7 @@ const rateLimitController = {
       }
 
       // Unblock user
-      unblockIdentifier(blockIdentifier);
+      const unblocked = unblockIdentifier(blockIdentifier);
 
       // Optional: tambah ke whitelist sementara
       if (addToWhitelistTemp && userId) {
@@ -109,15 +115,19 @@ const rateLimitController = {
           unblockedBy: req.user.id,
           addedToWhitelist: addToWhitelistTemp || false,
           timestamp: new Date().toISOString(),
+          found: unblocked,
         },
       });
 
-      console.log(`Admin ${req.user.id} unblocked ${blockIdentifier}`);
-      await logActivity(
-        req.user?.id,
-        `Unblock User ${blockIdentifier} (addToWhitelist: ${!!addToWhitelistTemp})`,
-        req
-      );
+      console.log(`🔓 Admin ${req.user?.email || req.user?.id} unblocked ${blockIdentifier}`);
+      
+      if (logActivity) {
+        await logActivity(
+          req.user?.id,
+          `Unblock User ${blockIdentifier} (addToWhitelist: ${!!addToWhitelistTemp})`,
+          req
+        );
+      }
     } catch (error) {
       console.error("Error unblocking user:", error);
       res.status(500).json({
@@ -142,11 +152,13 @@ const rateLimitController = {
       const blocked = isUserBlocked(userId);
 
       if (!blocked) {
-        await logActivity(
-          req.user?.id,
-          `Check User Block Status: User ${userId} not blocked`,
-          req
-        );
+        if (logActivity) {
+          await logActivity(
+            req.user?.id,
+            `Check User Block Status: User ${userId} not blocked`,
+            req
+          );
+        }
         return res.json({
           success: true,
           data: {
@@ -163,11 +175,13 @@ const rateLimitController = {
       const blockInfo = blockedData[key];
 
       if (!blockInfo) {
-        await logActivity(
-          req.user?.id,
-          `Check User Block Status: User ${userId} block expired`,
-          req
-        );
+        if (logActivity) {
+          await logActivity(
+            req.user?.id,
+            `Check User Block Status: User ${userId} block expired`,
+            req
+          );
+        }
         return res.json({
           success: true,
           data: {
@@ -195,13 +209,13 @@ const rateLimitController = {
         },
       });
 
-      await logActivity(
-        req.user?.id,
-        `Check User Block Status: User ${userId} is blocked, info: ${JSON.stringify(
-          blockInfo
-        )}`,
-        req
-      );
+      if (logActivity) {
+        await logActivity(
+          req.user?.id,
+          `Check User Block Status: User ${userId} is blocked, info: ${JSON.stringify(blockInfo)}`,
+          req
+        );
+      }
     } catch (error) {
       console.error("Error getting user block status:", error);
       res.status(500).json({
@@ -258,16 +272,15 @@ const rateLimitController = {
         },
       });
 
-      console.log(
-        `Admin ${req.user.id} modified block duration for user ${userId}`
-      );
-      await logActivity(
-        req.user?.id,
-        `Modify Block Duration for User ${userId} to ${duration}ms Reason: ${
-          reason || existingBlock.type
-        }`,
-        req
-      );
+      console.log(`Admin ${req.user?.email || req.user?.id} modified block duration for user ${userId}`);
+      
+      if (logActivity) {
+        await logActivity(
+          req.user?.id,
+          `Modify Block Duration for User ${userId} to ${duration}ms Reason: ${reason || existingBlock.type}`,
+          req
+        );
+      }
     } catch (error) {
       console.error("Error modifying block duration:", error);
       res.status(500).json({
@@ -298,14 +311,15 @@ const rateLimitController = {
         },
       });
 
-      console.log(
-        `Admin ${req.user.id} cleared all blocks (${beforeCount} entries)`
-      );
-      await logActivity(
-        req.user?.id,
-        `Unblock All (${beforeCount} entries)`,
-        req
-      );
+      console.log(`🧹 Admin ${req.user?.email || req.user?.id} cleared all blocks (${beforeCount} entries)`);
+      
+      if (logActivity) {
+        await logActivity(
+          req.user?.id,
+          `Unblock All (${beforeCount} entries)`,
+          req
+        );
+      }
     } catch (error) {
       console.error("Error clearing all blocks:", error);
       res.status(500).json({
@@ -349,9 +363,7 @@ const rateLimitController = {
 
       res.json({
         success: true,
-        message: `${action === "add" ? "Added" : "Removed"} ${identifier} ${
-          action === "add" ? "to" : "from"
-        } ${type} whitelist`,
+        message: `${action === "add" ? "Added" : "Removed"} ${identifier} ${action === "add" ? "to" : "from"} ${type} whitelist`,
         data: {
           identifier,
           type,
@@ -361,16 +373,15 @@ const rateLimitController = {
         },
       });
 
-      console.log(
-        `Admin ${req.user.id} ${action}ed ${identifier} ${
-          action === "add" ? "to" : "from"
-        } ${type} whitelist`
-      );
-      await logActivity(
-        req.user?.id,
-        `Whitelist ${action} ${identifier} ${type}`,
-        req
-      );
+      console.log(`Admin ${req.user?.email || req.user?.id} ${action}ed ${identifier} ${action === "add" ? "to" : "from"} ${type} whitelist`);
+      
+      if (logActivity) {
+        await logActivity(
+          req.user?.id,
+          `Whitelist ${action} ${identifier} ${type}`,
+          req
+        );
+      }
     } catch (error) {
       console.error("Error managing whitelist:", error);
       res.status(500).json({

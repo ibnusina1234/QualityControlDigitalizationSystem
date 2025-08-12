@@ -88,10 +88,12 @@ app.set("io", io);
 app.use("/public", express.static(path.join(__dirname, "public")));
 app.use("/uploads", express.static(path.join(__dirname, "public/uploads")));
 
-// STEP 1: Apply login rate limiter to login endpoints
-// Pastikan ini diterapkan SEBELUM routes yang memerlukan login
+// STEP 1: Apply login rate limiter to login endpoints FIRST
+// CRITICAL: TAMBAH blockCheckMiddleware ke login routes juga!
+app.use("/users/login", blockCheckMiddleware);  // TAMBAH INI!
 app.use("/users/login", loginRateLimiter);
-app.use("/users/register", loginRateLimiter); // jika ada
+app.use("/users/register", blockCheckMiddleware);  // TAMBAH INI!
+app.use("/users/register", loginRateLimiter);
 
 // STEP 2: Apply token verification untuk protected routes
 // Semua routes kecuali yang public perlu authentication
@@ -242,41 +244,32 @@ server.listen(PORT, () => {
   
   // Log middleware yang aktif
   console.log(`📋 Active middleware:`);
-  console.log(`   ✅ Login Rate Limiter: /users/login`);
+  console.log(`   ✅ Block Check Middleware: SEMUA ROUTES (termasuk login)`);
+  console.log(`   ✅ Login Rate Limiter: /users/login, /users/register`);
   console.log(`   ✅ Token Verification: All protected routes`);
-  console.log(`   ✅ Block Check: All protected routes`);
   console.log(`   ✅ Dynamic Rate Limiter: All protected routes`);
   console.log(`   ✅ Admin Management Routes: /admin/blocked-status, /admin/block-user, etc.`);
 });
 
 /*
-IMPORTANT NOTES:
+PERBAIKAN UTAMA:
 
-1. URUTAN MIDDLEWARE SANGAT PENTING:
-   - loginRateLimiter (untuk login endpoints)
-   - verifyToken (untuk authentication)
-   - blockCheckMiddleware (untuk mencegah blocked users)
-   - dynamicRateLimiter (untuk rate limiting berdasarkan role)
+1. TAMBAH blockCheckMiddleware ke login routes:
+   - app.use("/users/login", blockCheckMiddleware);
+   - app.use("/users/register", blockCheckMiddleware);
 
-2. LOGIN ENDPOINTS (/users/login) mendapat:
-   - loginRateLimiter: 5 attempts per 5 menit
+2. Ini akan mencegah user yang diblok untuk login sama sekali
 
-3. PROTECTED ROUTES mendapat:
-   - verifyToken: authentication check
-   - blockCheckMiddleware: blocked user check  
-   - dynamicRateLimiter: role-based rate limiting
+3. Pastikan middleware/rateLimiter.js export fungsi dengan nama yang benar
 
-4. ADMIN MANAGEMENT ROUTES otomatis dibuat oleh createManagementRoutes():
-   - GET /admin/blocked-status
-   - POST /admin/block-user
-   - POST /admin/unblock-user
-   - POST /admin/unblock-all
+4. Controller sudah diperbaiki untuk import yang benar
 
-5. ERROR HANDLING:
-   - 429 errors (rate limit) ditangani khusus
-   - Blocked user attempts di-log untuk monitoring
-   - 404 dan 500 errors ditangani dengan proper logging
+URUTAN MIDDLEWARE UNTUK LOGIN:
+1. blockCheckMiddleware (cek apakah user/IP diblok)
+2. loginRateLimiter (rate limit login attempts)
 
-6. Pastikan file middleware/rateLimiter.js dan middleware/auth.js 
-   ada di lokasi yang benar
+UNTUK ROUTES LAINNYA:
+1. verifyToken (authentication)
+2. blockCheckMiddleware (cek block status)
+3. dynamicRateLimiter (rate limit API calls)
 */
