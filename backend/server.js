@@ -98,10 +98,10 @@ app.use("/uploads", express.static(path.join(__dirname, "public/uploads")));
 
 // STEP 1: Apply login rate limiter to login endpoints FIRST
 // CRITICAL: TAMBAH blockCheckMiddleware ke login routes juga!
-app.use("/users/login", blockCheckMiddleware);  // Cek block status dulu
-app.use("/users/login", loginRateLimiter);       // Kemudian rate limit
-app.use("/users/register", blockCheckMiddleware); // Cek block status dulu
-app.use("/users/register", loginRateLimiter);     // Kemudian rate limit
+app.use("/users/Login", blockCheckMiddleware);  // Cek block status dulu
+app.use("/users/Login", loginRateLimiter);       // Kemudian rate limit
+app.use("/users/Register", blockCheckMiddleware); // Cek block status dulu
+app.use("/users/Register", loginRateLimiter);     // Kemudian rate limit
 
 // STEP 2: Apply token verification untuk protected routes
 // Semua routes kecuali yang public perlu authentication
@@ -124,7 +124,7 @@ app.use("/admin/*", verifyToken);
 // STEP 3: CRITICAL - Apply block check middleware SETELAH verifyToken
 // Ini akan mencegah user yang diblok mengakses sistem
 app.use("/users/*", (req, res, next) => {
-  if (req.path === "/login" || req.path === "/register") {
+  if (req.path === "/Login" || req.path === "/Register") {
     return next();
   }
   blockCheckMiddleware(req, res, next);
@@ -139,7 +139,7 @@ app.use("/admin/*", blockCheckMiddleware);
 
 // STEP 4: Apply dynamic rate limiter untuk protected routes
 app.use("/users/*", (req, res, next) => {
-  if (req.path === "/login" || req.path === "/register") {
+  if (req.path === "/Login" || req.path === "/Register") {
     return next();
   }
   dynamicRateLimiter(req, res, next);
@@ -253,7 +253,7 @@ server.listen(PORT, () => {
   // Log middleware yang aktif
   console.log(`📋 Active middleware:`);
   console.log(`   ✅ Block Check Middleware: SEMUA ROUTES (termasuk login)`);
-  console.log(`   ✅ Login Rate Limiter: /users/login, /users/register`);
+  console.log(`   ✅ Login Rate Limiter: /users/Login, /users/Register`);
   console.log(`   ✅ Token Verification: All protected routes`);
   console.log(`   ✅ Dynamic Rate Limiter: All protected routes`);
   console.log(`   ✅ Admin Management Routes: /admin/blocked-status, /admin/block-user, etc.`);
