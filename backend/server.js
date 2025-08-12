@@ -22,16 +22,24 @@ const uploadRoute = require("./routers/uploadRouter");
 const scopes = ["https://www.googleapis.com/auth/drive.file"];
 const rmpmRoutes = require("./routers/dashboardRMPMRoutes");
 
-// IMPORT RATE LIMITER COMPONENTS
+// CRITICAL FIX: Import dengan nama file yang tepat (rateLimiter, bukan rateLimit)
 const { 
   loginRateLimiter, 
   dynamicRateLimiter, 
   blockCheckMiddleware,
-  createManagementRoutes 
-} = require("./middleware/rateLimit");
+  createManagementRoutes,
+  isUserBlocked  // Tambah import ini untuk logging
+} = require("./middleware/rateLimiter"); // PASTIKAN NAMA FILE BENAR
 
-// Import auth middleware
+// Import auth middleware  
 const { verifyToken } = require("./middleware/auth");
+
+// OAuth2Client setup (jika diperlukan)
+const oAuth2Client = new google.auth.OAuth2(
+  process.env.GOOGLE_CLIENT_ID,
+  process.env.GOOGLE_CLIENT_SECRET,
+  process.env.GOOGLE_REDIRECT_URL
+);
 
 ///Buat URL autentikasi Google
 app.get("/auth/google", (req, res) => {
@@ -90,10 +98,10 @@ app.use("/uploads", express.static(path.join(__dirname, "public/uploads")));
 
 // STEP 1: Apply login rate limiter to login endpoints FIRST
 // CRITICAL: TAMBAH blockCheckMiddleware ke login routes juga!
-app.use("/users/login", blockCheckMiddleware);  // TAMBAH INI!
-app.use("/users/login", loginRateLimiter);
-app.use("/users/register", blockCheckMiddleware);  // TAMBAH INI!
-app.use("/users/register", loginRateLimiter);
+app.use("/users/login", blockCheckMiddleware);  // Cek block status dulu
+app.use("/users/login", loginRateLimiter);       // Kemudian rate limit
+app.use("/users/register", blockCheckMiddleware); // Cek block status dulu
+app.use("/users/register", loginRateLimiter);     // Kemudian rate limit
 
 // STEP 2: Apply token verification untuk protected routes
 // Semua routes kecuali yang public perlu authentication
@@ -151,7 +159,6 @@ app.use((req, res, next) => {
     if (token) {
       const jwt = require("jsonwebtoken");
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
-      const { isUserBlocked } = require("./middleware/rateLimiter");
 
       if (isUserBlocked(decoded.id)) {
         console.log(
@@ -249,27 +256,14 @@ server.listen(PORT, () => {
   console.log(`   ✅ Token Verification: All protected routes`);
   console.log(`   ✅ Dynamic Rate Limiter: All protected routes`);
   console.log(`   ✅ Admin Management Routes: /admin/blocked-status, /admin/block-user, etc.`);
+  
+  // Test import untuk memastikan tidak ada error
+  console.log(`🔍 Testing imports...`);
+  try {
+    const testFunctions = require("./middleware/rateLimiter");
+    console.log(`   ✅ rateLimiter.js imported successfully`);
+    console.log(`   ✅ Available functions: ${Object.keys(testFunctions).join(', ')}`);
+  } catch (error) {
+    console.error(`   ❌ Error importing rateLimiter.js:`, error.message);
+  }
 });
-
-/*
-PERBAIKAN UTAMA:
-
-1. TAMBAH blockCheckMiddleware ke login routes:
-   - app.use("/users/login", blockCheckMiddleware);
-   - app.use("/users/register", blockCheckMiddleware);
-
-2. Ini akan mencegah user yang diblok untuk login sama sekali
-
-3. Pastikan middleware/rateLimiter.js export fungsi dengan nama yang benar
-
-4. Controller sudah diperbaiki untuk import yang benar
-
-URUTAN MIDDLEWARE UNTUK LOGIN:
-1. blockCheckMiddleware (cek apakah user/IP diblok)
-2. loginRateLimiter (rate limit login attempts)
-
-UNTUK ROUTES LAINNYA:
-1. verifyToken (authentication)
-2. blockCheckMiddleware (cek block status)
-3. dynamicRateLimiter (rate limit API calls)
-*/

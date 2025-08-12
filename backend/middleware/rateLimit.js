@@ -1,7 +1,6 @@
-// rateLimiter.js - COMPLETE FIXED VERSION
+// rateLimiter.js - FIXED VERSION WITH CORRECT EXPORTS
 const rateLimit = require("express-rate-limit");
 const jwt = require("jsonwebtoken");
-const verifyToken = require("./auth");
 
 // Store untuk menyimpan whitelist dan blocked IPs
 const whitelistedIPs = new Set();
@@ -534,19 +533,30 @@ setInterval(() => {
   }
 }, 5 * 60 * 1000); // Log setiap 5 menit
 
+// CRITICAL FIX: Export semua fungsi yang dibutuhkan dengan nama yang tepat
 module.exports = {
+  // Rate limiter middleware
   loginRateLimiter,
   dynamicRateLimiter,
-  blockCheckMiddleware, // CRITICAL: Export middleware ini
+  
+  // Middleware functions
+  blockCheckMiddleware, // CRITICAL: Ini yang diperlukan server.js
   adminUnblockMiddleware,
+  
+  // Management functions
   createManagementRoutes,
   addToWhitelist,
   removeFromWhitelist,
   unblockIdentifier,
   getBlockedStatus,
   blockUser,
+  
+  // Check functions
   isUserBlocked,
   isIPBlocked,
   isRequestBlocked,
   generateBlockKey,
+  
+  // Helper functions untuk backward compatibility
+  skipWhitelisted
 };
