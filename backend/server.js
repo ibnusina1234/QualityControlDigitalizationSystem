@@ -29,7 +29,7 @@ const {
   blockCheckMiddleware,
   createManagementRoutes,
   isUserBlocked  // Tambah import ini untuk logging
-} = require("./middleware/rateLimiter"); // PASTIKAN NAMA FILE BENAR
+} = require("./middleware/rateLimit"); // PASTIKAN NAMA FILE BENAR
 
 // Import auth middleware  
 const { verifyToken } = require("./middleware/auth");
