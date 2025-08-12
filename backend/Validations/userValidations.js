@@ -6,8 +6,7 @@ const registerSchema = Joi.object({
   inisial: Joi.string().max(10).required(),
   departement: Joi.string().required(),
   jabatan: Joi.string().required(),
-  password: Joi.string().min(6).required(),
-  role: Joi.string().required(), // validasi sederhana string required
+  password: Joi.string().min(6).required(), // validasi sederhana string required
   // img TIDAK divalidasi karena ada di req.file, bukan req.body
 });
 
@@ -22,7 +21,7 @@ const updateProfileSchema = Joi.object({
   inisial: Joi.string().required(),
   departement: Joi.string().required(),
   jabatan: Joi.string().required(),
-  userrole: Joi.string().valid("admin", "user","super admin").optional(),
+  userrole: Joi.string().valid("admin", "user", "super admin").optional(),
 });
 
 const updateUserStatusSchema = Joi.object({
