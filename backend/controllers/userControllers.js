@@ -24,18 +24,15 @@ const transporter = nodemailer.createTransport({
 
 exports.registerUser = async (req, res) => {
   try {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      if (process.env.NODE_ENV !== "production") {
-        console.warn("Input tidak valid:", errors.array());
-      }
-      return res
-        .status(400)
-        .json({ error: "Invalid input", details: errors.array() });
-    }
-
-    const { email, nama_lengkap, inisial, departement, jabatan, password, role } =
-      req.body;
+    const {
+      email,
+      nama_lengkap,
+      inisial,
+      departement,
+      jabatan,
+      password,
+      role,
+    } = req.body;
 
     // Handle image path
     const imgPath = req.file ? `public/uploads/${req.file.filename}` : null;
@@ -49,13 +46,6 @@ exports.registerUser = async (req, res) => {
         jabatan,
         role,
         imgPath,
-      });
-    }
-
-    // Validasi data yang diperlukan (img tidak wajib)
-    if (!email || !nama_lengkap || !inisial || !departement || !jabatan || !password || !role) {
-      return res.status(400).json({ 
-        error: "Semua field wajib harus diisi (kecuali gambar profil)" 
       });
     }
 
@@ -99,12 +89,12 @@ exports.registerUser = async (req, res) => {
     if (process.env.NODE_ENV !== "production") {
       console.error("Kesalahan tidak terduga dalam registerUser:", err.message);
     }
-    
+
     // Handle specific database errors
-    if (err.code === 'ER_DUP_ENTRY') {
+    if (err.code === "ER_DUP_ENTRY") {
       return res.status(409).json({ error: "Email sudah terdaftar" });
     }
-    
+
     return res.status(500).json({ error: "Internal server error" });
   }
 };
@@ -113,7 +103,7 @@ exports.registerUser = async (req, res) => {
 exports.getUserAccess = async (req, res) => {
   try {
     // Debug: Log user information
-    console.log("User Role:", req.user?.userrole); 
+    console.log("User Role:", req.user?.userrole);
 
     // Get the user's role key from req.user
     const userRoleKey = req.user?.userrole;
@@ -142,15 +132,15 @@ exports.getUserAccess = async (req, res) => {
       [roleId]
     );
 
-    res.json({ 
+    res.json({
       success: true,
-      permissions: permissions.map(p => p.permission_key) 
+      permissions: permissions.map((p) => p.permission_key),
     });
   } catch (err) {
     console.error("Database Error:", err);
-    res.status(500).json({ 
+    res.status(500).json({
       error: "Database operation failed",
-      details: process.env.NODE_ENV === 'development' ? err.message : null
+      details: process.env.NODE_ENV === "development" ? err.message : null,
     });
   }
 };
@@ -283,7 +273,7 @@ exports.loginUser = async (req, res) => {
     // Cek validasi input
     const errors = validationResult(req);
     const BACKEND_URL = process.env.BACKEND_URL;
-    
+
     if (!errors.isEmpty()) {
       return res.status(400).json({ errors: errors.array() });
     }
@@ -291,7 +281,9 @@ exports.loginUser = async (req, res) => {
     const { email, password } = req.body;
 
     // Query database untuk mencari user berdasarkan email
-    const [users] = await db.execute("SELECT * FROM user WHERE email = ?", [email]);
+    const [users] = await db.execute("SELECT * FROM user WHERE email = ?", [
+      email,
+    ]);
 
     if (users.length === 0) {
       return res.status(404).json({ error: "User not found" });
@@ -301,8 +293,8 @@ exports.loginUser = async (req, res) => {
 
     // Pastikan status user adalah 'Active' sebelum melanjutkan
     if (user.status !== "Active") {
-      return res.status(403).json({ 
-        error: "User is not Active. Please Contact Administrator" 
+      return res.status(403).json({
+        error: "User is not Active. Please Contact Administrator",
       });
     }
 
@@ -322,7 +314,7 @@ exports.loginUser = async (req, res) => {
        )`,
       [user.userrole]
     );
-    
+
     const userPermissions = permissions.map((p) => p.permission_key);
 
     // Cek apakah user harus reset password
@@ -337,9 +329,11 @@ exports.loginUser = async (req, res) => {
       jabatan: user.jabatan,
       nama_lengkap: user.nama_lengkap,
       inisial: user.inisial,
-      img: user.img ? `${BACKEND_URL}/${user.img.replace("public/", "")}` : null,
+      img: user.img
+        ? `${BACKEND_URL}/${user.img.replace("public/", "")}`
+        : null,
       mustChangePassword,
-      permissions: userPermissions
+      permissions: userPermissions,
     };
 
     // Generate token JWT
@@ -350,7 +344,7 @@ exports.loginUser = async (req, res) => {
     // Set token ke cookie HttpOnly
     res.cookie("token", token, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production', // ✅ DINAMIS BERDASARKAN ENV
+      secure: process.env.NODE_ENV === "production", // ✅ DINAMIS BERDASARKAN ENV
       sameSite: "Strict",
       maxAge: 3600000, // 1 jam
     });
@@ -377,17 +371,18 @@ exports.loginUser = async (req, res) => {
         jabatan: user.jabatan,
         nama_lengkap: user.nama_lengkap,
         inisial: user.inisial,
-        img: user.img ? `${BACKEND_URL}/${user.img.replace("public/", "")}` : null,
+        img: user.img
+          ? `${BACKEND_URL}/${user.img.replace("public/", "")}`
+          : null,
         mustChangePassword,
         permissions: userPermissions,
       },
     });
-
   } catch (err) {
     console.error("Login error:", err?.message || err);
-    res.status(500).json({ 
+    res.status(500).json({
       error: "Internal server error",
-      details: process.env.NODE_ENV === 'development' ? err.message : undefined
+      details: process.env.NODE_ENV === "development" ? err.message : undefined,
     });
   }
 };
@@ -579,13 +574,15 @@ exports.updateUserRole = async (req, res) => {
   }
   // Hanya admin atau super admin yang boleh update userrole
   if (!(requesterRole === "admin" || requesterRole === "super admin")) {
-    return res.status(403).json({ error: "Tidak diizinkan mengganti role user." });
+    return res
+      .status(403)
+      .json({ error: "Tidak diizinkan mengganti role user." });
   }
 
   try {
     // Ambil daftar role_key dari tabel roles
     const [roles] = await db.execute("SELECT role_key FROM roles");
-    const allowedRoles = roles.map(r => r.role_key);
+    const allowedRoles = roles.map((r) => r.role_key);
 
     // Validasi userrole dengan daftar role_key
     if (!allowedRoles.includes(userrole)) {
@@ -728,7 +725,9 @@ exports.requestPasswordReset = async (req, res) => {
 exports.resetPassword = async (req, res) => {
   const { email, token, newPassword } = req.body;
   if (!email || !newPassword) {
-    return res.status(400).json({ error: "Email and new password are required" });
+    return res
+      .status(400)
+      .json({ error: "Email and new password are required" });
   }
 
   try {
@@ -744,10 +743,9 @@ exports.resetPassword = async (req, res) => {
       user = results[0];
     } else {
       // Reset password tanpa token (misal: login pertama kali)
-      const [results] = await db.query(
-        "SELECT * FROM user WHERE email = ?",
-        [email]
-      );
+      const [results] = await db.query("SELECT * FROM user WHERE email = ?", [
+        email,
+      ]);
       if (results.length === 0)
         return res.status(404).json({ error: "User not found" });
       user = results[0];
@@ -775,7 +773,6 @@ exports.resetPassword = async (req, res) => {
     res.status(500).json({ error: "Internal server error" });
   }
 };
-
 
 // Fetch Pending Users
 exports.getPendingUsers = async (req, res) => {
@@ -892,102 +889,109 @@ exports.deleteUserById = async (req, res) => {
     const currentUser = req.user;
 
     console.log(`=== DELETE USER START ===`);
-    console.log(`User ID: ${id}, Current User: ${currentUser.id} (${currentUser.userrole})`);
+    console.log(
+      `User ID: ${id}, Current User: ${currentUser.id} (${currentUser.userrole})`
+    );
 
     if (!id) {
-      console.log('ERROR: No ID provided');
-      return res.status(400).json({ 
-        success: false, 
-        error: "User ID is required" 
+      console.log("ERROR: No ID provided");
+      return res.status(400).json({
+        success: false,
+        error: "User ID is required",
       });
     }
 
     // Cari user
     const [users] = await db.execute("SELECT * FROM user WHERE id = ?", [id]);
     const userToDelete = users[0];
-    
+
     if (!userToDelete) {
-      console.log('ERROR: User not found');
-      return res.status(404).json({ 
-        success: false, 
-        error: "User not found" 
+      console.log("ERROR: User not found");
+      return res.status(404).json({
+        success: false,
+        error: "User not found",
       });
     }
 
-    console.log(`Target user found: ${userToDelete.nama_lengkap} (${userToDelete.userrole})`);
+    console.log(
+      `Target user found: ${userToDelete.nama_lengkap} (${userToDelete.userrole})`
+    );
 
     // Tidak boleh hapus diri sendiri
     if (userToDelete.id.toString() === currentUser.id.toString()) {
-      console.log('ERROR: Cannot delete self');
-      return res.status(403).json({ 
-        success: false, 
-        error: "Cannot delete yourself" 
+      console.log("ERROR: Cannot delete self");
+      return res.status(403).json({
+        success: false,
+        error: "Cannot delete yourself",
       });
     }
 
     // Admin tidak boleh hapus super admin
-    if (currentUser.userrole === "admin" && userToDelete.userrole === "super admin") {
-      console.log('ERROR: Admin cannot delete super admin');
-      return res.status(403).json({ 
-        success: false, 
-        error: "Admin cannot delete super admin" 
+    if (
+      currentUser.userrole === "admin" &&
+      userToDelete.userrole === "super admin"
+    ) {
+      console.log("ERROR: Admin cannot delete super admin");
+      return res.status(403).json({
+        success: false,
+        error: "Admin cannot delete super admin",
       });
     }
 
     // Super admin tidak boleh dihapus oleh siapapun
     if (userToDelete.userrole === "super admin") {
-      console.log('ERROR: Super admin cannot be deleted');
-      return res.status(403).json({ 
-        success: false, 
-        error: "Super admin cannot be deleted" 
+      console.log("ERROR: Super admin cannot be deleted");
+      return res.status(403).json({
+        success: false,
+        error: "Super admin cannot be deleted",
       });
     }
 
-    console.log('Executing DELETE query...');
+    console.log("Executing DELETE query...");
     // Hapus user
     const [result] = await db.execute("DELETE FROM user WHERE id = ?", [id]);
-    
-    console.log('Delete result:', result);
-    
+
+    console.log("Delete result:", result);
+
     if (result.affectedRows === 0) {
-      console.log('ERROR: No rows affected');
-      return res.status(404).json({ 
-        success: false, 
-        error: "User not found or already deleted" 
+      console.log("ERROR: No rows affected");
+      return res.status(404).json({
+        success: false,
+        error: "User not found or already deleted",
       });
     }
 
     console.log(`SUCCESS: User deleted - ${userToDelete.nama_lengkap}`);
-    console.log('Sending success response...');
+    console.log("Sending success response...");
 
     // PASTIKAN response dikirim dan tidak ada code setelah ini
     const response = {
-      success: true, 
+      success: true,
       message: "User deleted successfully",
       data: {
         deletedUser: {
           id: userToDelete.id,
           nama_lengkap: userToDelete.nama_lengkap,
-          email: userToDelete.email
-        }
-      }
+          email: userToDelete.email,
+        },
+      },
     };
 
-    console.log('Response to send:', response);
+    console.log("Response to send:", response);
     console.log(`=== DELETE USER END ===`);
 
     return res.status(200).json(response);
-
   } catch (error) {
     console.error("=== DELETE USER ERROR ===");
     console.error("Error:", error);
     console.error("Stack:", error.stack);
-    
+
     // PASTIKAN error response juga dikirim
-    return res.status(500).json({ 
-      success: false, 
+    return res.status(500).json({
+      success: false,
       error: "Internal server error",
-      details: process.env.NODE_ENV === 'development' ? error.message : undefined
+      details:
+        process.env.NODE_ENV === "development" ? error.message : undefined,
     });
   }
 };
@@ -1171,18 +1175,18 @@ exports.searchUserLogs = async (req, res) => {
 // Ambil semua role dan permission-nya
 exports.getAllRolesWithPermissions = async (req, res) => {
   try {
-    const [roles] = await db.query('SELECT * FROM roles');
-    const [permissions] = await db.query('SELECT * FROM permissions');
-    const [mappings] = await db.query('SELECT * FROM role_default_permissions');
+    const [roles] = await db.query("SELECT * FROM roles");
+    const [permissions] = await db.query("SELECT * FROM permissions");
+    const [mappings] = await db.query("SELECT * FROM role_default_permissions");
 
-    const roleMap = roles.map(role => {
+    const roleMap = roles.map((role) => {
       const permissionIds = mappings
-        .filter(m => m.role_id === role.id)
-        .map(m => m.permission_id);
+        .filter((m) => m.role_id === role.id)
+        .map((m) => m.permission_id);
 
       const assignedPermissions = permissions
-        .filter(p => permissionIds.includes(p.id))
-        .map(p => p.permission_key);
+        .filter((p) => permissionIds.includes(p.id))
+        .map((p) => p.permission_key);
 
       return {
         role_key: role.role_key,
@@ -1190,7 +1194,7 @@ exports.getAllRolesWithPermissions = async (req, res) => {
         icon: role.icon,
         category: role.category,
         description: role.description,
-        access: assignedPermissions
+        access: assignedPermissions,
       };
     });
 
@@ -1201,15 +1205,15 @@ exports.getAllRolesWithPermissions = async (req, res) => {
 
     res.json(roleMap);
   } catch (err) {
-    console.error('Error getting role permissions:', err);
-    res.status(500).json({ message: 'Internal Server Error' });
+    console.error("Error getting role permissions:", err);
+    res.status(500).json({ message: "Internal Server Error" });
   }
 };
 
 // Ambil semua permission
 exports.getAllPermissions = async (req, res) => {
   try {
-    const [rows] = await db.query('SELECT * FROM permissions');
+    const [rows] = await db.query("SELECT * FROM permissions");
 
     // Log the activity
     if (req.user?.id) {
@@ -1218,8 +1222,8 @@ exports.getAllPermissions = async (req, res) => {
 
     res.json(rows);
   } catch (err) {
-    console.error('Error getting permissions:', err);
-    res.status(500).json({ message: 'Internal Server Error' });
+    console.error("Error getting permissions:", err);
+    res.status(500).json({ message: "Internal Server Error" });
   }
 };
 
@@ -1227,15 +1231,19 @@ exports.getAllPermissions = async (req, res) => {
 exports.getPermissionsByRoleKey = async (req, res) => {
   const { roleKey } = req.params;
   try {
-    const [[role]] = await db.query('SELECT * FROM roles WHERE role_key = ?', [roleKey]);
-    if (!role) return res.status(404).json({ message: 'Role not found' });
+    const [[role]] = await db.query("SELECT * FROM roles WHERE role_key = ?", [
+      roleKey,
+    ]);
+    if (!role) return res.status(404).json({ message: "Role not found" });
 
     const [mappings] = await db.query(
       `SELECT p.permission_key FROM role_default_permissions rdp
        JOIN permissions p ON p.id = rdp.permission_id
-       WHERE rdp.role_id = ?`, [role.id]);
+       WHERE rdp.role_id = ?`,
+      [role.id]
+    );
 
-    const permissionKeys = mappings.map(row => row.permission_key);
+    const permissionKeys = mappings.map((row) => row.permission_key);
 
     // Log the activity
     if (req.user?.id) {
@@ -1244,8 +1252,8 @@ exports.getPermissionsByRoleKey = async (req, res) => {
 
     res.json({ role_key: roleKey, permissions: permissionKeys });
   } catch (err) {
-    console.error('Error getting role permissions:', err);
-    res.status(500).json({ message: 'Internal Server Error' });
+    console.error("Error getting role permissions:", err);
+    res.status(500).json({ message: "Internal Server Error" });
   }
 };
 
@@ -1255,7 +1263,7 @@ exports.updatePermissionsForRole = async (req, res) => {
   const { permissions = [] } = req.body;
 
   if (!Array.isArray(permissions)) {
-    return res.status(400).json({ message: 'Permissions should be an array' });
+    return res.status(400).json({ message: "Permissions should be an array" });
   }
 
   const connection = await db.getConnection(); // ambil koneksi dari pool
@@ -1263,32 +1271,45 @@ exports.updatePermissionsForRole = async (req, res) => {
     await connection.beginTransaction();
 
     const [[role]] = await connection.query(
-      'SELECT * FROM roles WHERE role_key = ?', [roleKey]
+      "SELECT * FROM roles WHERE role_key = ?",
+      [roleKey]
     );
     if (!role) {
       await connection.rollback();
       connection.release();
-      return res.status(404).json({ message: 'Role not found' });
+      return res.status(404).json({ message: "Role not found" });
     }
 
     // Get old permissions for logging
     const [oldMappings] = await connection.query(
       `SELECT p.permission_key FROM role_default_permissions rdp
        JOIN permissions p ON p.id = rdp.permission_id
-       WHERE rdp.role_id = ?`, [role.id]);
-    const oldPermissions = oldMappings.map(row => row.permission_key);
+       WHERE rdp.role_id = ?`,
+      [role.id]
+    );
+    const oldPermissions = oldMappings.map((row) => row.permission_key);
 
-    const [allPermissions] = await connection.query('SELECT * FROM permissions');
-    const validPermissionMap = new Map(allPermissions.map(p => [p.permission_key, p.id]));
+    const [allPermissions] = await connection.query(
+      "SELECT * FROM permissions"
+    );
+    const validPermissionMap = new Map(
+      allPermissions.map((p) => [p.permission_key, p.id])
+    );
 
-    const permissionIds = permissions.map(key => validPermissionMap.get(key)).filter(Boolean);
+    const permissionIds = permissions
+      .map((key) => validPermissionMap.get(key))
+      .filter(Boolean);
 
-    await connection.query('DELETE FROM role_default_permissions WHERE role_id = ?', [role.id]);
+    await connection.query(
+      "DELETE FROM role_default_permissions WHERE role_id = ?",
+      [role.id]
+    );
 
     if (permissionIds.length > 0) {
-      const values = permissionIds.map(pid => [role.id, pid]);
+      const values = permissionIds.map((pid) => [role.id, pid]);
       await connection.query(
-        'INSERT INTO role_default_permissions (role_id, permission_id) VALUES ?', [values]
+        "INSERT INTO role_default_permissions (role_id, permission_id) VALUES ?",
+        [values]
       );
     }
 
@@ -1298,18 +1319,20 @@ exports.updatePermissionsForRole = async (req, res) => {
     // Log the activity
     if (req.user?.id) {
       logActivity(
-        req.user.id, 
-        `Updated permissions for role ${roleKey}: removed [${oldPermissions.join(', ')}], added [${permissions.join(', ')}]`, 
+        req.user.id,
+        `Updated permissions for role ${roleKey}: removed [${oldPermissions.join(
+          ", "
+        )}], added [${permissions.join(", ")}]`,
         req
       );
     }
 
-    res.json({ message: 'Permissions updated successfully' });
+    res.json({ message: "Permissions updated successfully" });
   } catch (err) {
     await connection.rollback();
     connection.release();
-    console.error('Error updating permissions:', err);
-    res.status(500).json({ message: 'Internal Server Error' });
+    console.error("Error updating permissions:", err);
+    res.status(500).json({ message: "Internal Server Error" });
   }
 };
 
@@ -1318,39 +1341,49 @@ exports.createRole = async (req, res) => {
   const { role_key, role_name, icon, is_active, description } = req.body;
 
   if (!role_key || !role_name) {
-    return res.status(400).json({ message: 'Role key and name are required' });
+    return res.status(400).json({ message: "Role key and name are required" });
   }
 
   try {
     // Cek apakah role_key sudah ada
-    const [existingRoles] = await db.query('SELECT * FROM roles WHERE role_key = ?', [role_key]);
+    const [existingRoles] = await db.query(
+      "SELECT * FROM roles WHERE role_key = ?",
+      [role_key]
+    );
     if (existingRoles.length > 0) {
-      return res.status(400).json({ message: 'Role key already exists' });
+      return res.status(400).json({ message: "Role key already exists" });
     }
     // Cek apakah role_name sudah ada
-    const [existingNames] = await db.query('SELECT * FROM roles WHERE role_name = ?', [role_name]);
+    const [existingNames] = await db.query(
+      "SELECT * FROM roles WHERE role_name = ?",
+      [role_name]
+    );
     if (existingNames.length > 0) {
-      return res.status(400).json({ message: 'Role name already exists' });
+      return res.status(400).json({ message: "Role name already exists" });
     }
 
     const [result] = await db.query(
-      'INSERT INTO roles (role_key, role_name, icon, is_active, description, created_at, updated_at) VALUES (?, ?, ?, 1, ?, NOW(), NOW())',
+      "INSERT INTO roles (role_key, role_name, icon, is_active, description, created_at, updated_at) VALUES (?, ?, ?, 1, ?, NOW(), NOW())",
       [role_key, role_name, icon || null, description || null]
     );
 
     // Log the activity
     if (req.user?.id) {
       logActivity(
-        req.user.id, 
-        `Created new role: ${role_name} (${role_key}) with description: ${description || 'No description'}`, 
+        req.user.id,
+        `Created new role: ${role_name} (${role_key}) with description: ${
+          description || "No description"
+        }`,
         req
       );
     }
 
-    res.status(201).json({ message: 'Role created successfully', id: result.insertId });
+    res
+      .status(201)
+      .json({ message: "Role created successfully", id: result.insertId });
   } catch (err) {
-    console.error('Error creating role:', err);
-    res.status(500).json({ message: 'Internal Server Error' });
+    console.error("Error creating role:", err);
+    res.status(500).json({ message: "Internal Server Error" });
   }
 };
 
@@ -1358,46 +1391,61 @@ exports.createRole = async (req, res) => {
 exports.updateRole = async (req, res) => {
   const { roleKey } = req.params;
   const { role_name, icon, is_active, description } = req.body;
-  
+
   if (!role_name) {
-    return res.status(400).json({ message: 'Role name is required' });
+    return res.status(400).json({ message: "Role name is required" });
   }
-  
+
   try {
     // Get old role data for logging
-    const [[oldRole]] = await db.query('SELECT * FROM roles WHERE role_key = ?', [roleKey]);
+    const [[oldRole]] = await db.query(
+      "SELECT * FROM roles WHERE role_key = ?",
+      [roleKey]
+    );
     if (!oldRole) {
-      return res.status(404).json({ message: 'Role not found' });
+      return res.status(404).json({ message: "Role not found" });
     }
 
     const [result] = await db.query(
-      'UPDATE roles SET role_name = ?, icon = ?, is_active = ?, description = ?, updated_at = NOW() WHERE role_key = ?',
+      "UPDATE roles SET role_name = ?, icon = ?, is_active = ?, description = ?, updated_at = NOW() WHERE role_key = ?",
       [role_name, icon || null, is_active || 1, description || null, roleKey]
     );
-    
+
     if (result.affectedRows === 0) {
-      return res.status(404).json({ message: 'Role not found' });
+      return res.status(404).json({ message: "Role not found" });
     }
 
     // Log the activity with changes
     if (req.user?.id) {
       const changes = [];
-      if (oldRole.role_name !== role_name) changes.push(`name: '${oldRole.role_name}' → '${role_name}'`);
-      if (oldRole.icon !== (icon || null)) changes.push(`icon: '${oldRole.icon}' → '${icon || null}'`);
-      if (oldRole.is_active !== (is_active || 1)) changes.push(`status: ${oldRole.is_active ? 'active' : 'inactive'} → ${(is_active || 1) ? 'active' : 'inactive'}`);
-      if (oldRole.description !== (description || null)) changes.push(`description: '${oldRole.description}' → '${description || null}'`);
-      
+      if (oldRole.role_name !== role_name)
+        changes.push(`name: '${oldRole.role_name}' → '${role_name}'`);
+      if (oldRole.icon !== (icon || null))
+        changes.push(`icon: '${oldRole.icon}' → '${icon || null}'`);
+      if (oldRole.is_active !== (is_active || 1))
+        changes.push(
+          `status: ${oldRole.is_active ? "active" : "inactive"} → ${
+            is_active || 1 ? "active" : "inactive"
+          }`
+        );
+      if (oldRole.description !== (description || null))
+        changes.push(
+          `description: '${oldRole.description}' → '${description || null}'`
+        );
+
       logActivity(
-        req.user.id, 
-        `Updated role ${roleKey}: ${changes.length > 0 ? changes.join(', ') : 'No changes detected'}`, 
+        req.user.id,
+        `Updated role ${roleKey}: ${
+          changes.length > 0 ? changes.join(", ") : "No changes detected"
+        }`,
         req
       );
     }
-    
-    res.json({ message: 'Role updated successfully' });
+
+    res.json({ message: "Role updated successfully" });
   } catch (err) {
-    console.error('Error updating role:', err);
-    res.status(500).json({ message: 'Internal Server Error' });
+    console.error("Error updating role:", err);
+    res.status(500).json({ message: "Internal Server Error" });
   }
 };
 
@@ -1407,76 +1455,103 @@ exports.deleteRole = async (req, res) => {
 
   try {
     // Get role data before deletion for logging
-    const [[roleToDelete]] = await db.query('SELECT * FROM roles WHERE role_key = ?', [roleKey]);
+    const [[roleToDelete]] = await db.query(
+      "SELECT * FROM roles WHERE role_key = ?",
+      [roleKey]
+    );
     if (!roleToDelete) {
-      return res.status(404).json({ message: 'Role not found' });
+      return res.status(404).json({ message: "Role not found" });
     }
 
     // Get associated permissions for logging
     const [associatedPermissions] = await db.query(
       `SELECT p.permission_key FROM role_default_permissions rdp
        JOIN permissions p ON p.id = rdp.permission_id
-       WHERE rdp.role_id = ?`, [roleToDelete.id]);
-    const permissionKeys = associatedPermissions.map(row => row.permission_key);
+       WHERE rdp.role_id = ?`,
+      [roleToDelete.id]
+    );
+    const permissionKeys = associatedPermissions.map(
+      (row) => row.permission_key
+    );
 
-    const [result] = await db.query('DELETE FROM roles WHERE role_key = ?', [roleKey]);
+    const [result] = await db.query("DELETE FROM roles WHERE role_key = ?", [
+      roleKey,
+    ]);
 
     if (result.affectedRows === 0) {
-      return res.status(404).json({ message: 'Role not found' });
+      return res.status(404).json({ message: "Role not found" });
     }
 
     // Hapus juga relasi di role_default_permissions (CASCADE should handle this, but being explicit)
-    await db.query('DELETE FROM role_default_permissions WHERE role_id = ?', [roleToDelete.id]);
+    await db.query("DELETE FROM role_default_permissions WHERE role_id = ?", [
+      roleToDelete.id,
+    ]);
 
     // Log the activity
     if (req.user?.id) {
       logActivity(
-        req.user.id, 
-        `Deleted role: ${roleToDelete.role_name} (${roleKey}) with permissions: [${permissionKeys.join(', ') || 'No permissions'}]`, 
+        req.user.id,
+        `Deleted role: ${
+          roleToDelete.role_name
+        } (${roleKey}) with permissions: [${
+          permissionKeys.join(", ") || "No permissions"
+        }]`,
         req
       );
     }
 
-    res.json({ message: 'Role deleted successfully' });
+    res.json({ message: "Role deleted successfully" });
   } catch (err) {
-    console.error('Error deleting role:', err);
-    res.status(500).json({ message: 'Internal Server Error' });
+    console.error("Error deleting role:", err);
+    res.status(500).json({ message: "Internal Server Error" });
   }
 };
 
 // Create permission
 exports.createPermission = async (req, res) => {
   const { permission_key, permission_name, description, category } = req.body;
-  
+
   if (!permission_key || !permission_name) {
-    return res.status(400).json({ message: 'Permission key and name are required' });
+    return res
+      .status(400)
+      .json({ message: "Permission key and name are required" });
   }
-  
+
   try {
     // Cek apakah permission_key sudah ada
-    const [existingPermissions] = await db.query('SELECT * FROM permissions WHERE permission_key = ?', [permission_key]);
+    const [existingPermissions] = await db.query(
+      "SELECT * FROM permissions WHERE permission_key = ?",
+      [permission_key]
+    );
     if (existingPermissions.length > 0) {
-      return res.status(400).json({ message: 'Permission key already exists' });
+      return res.status(400).json({ message: "Permission key already exists" });
     }
-    
+
     const [result] = await db.query(
-      'INSERT INTO permissions (permission_key, permission_name, description, category, created_at, updated_at) VALUES (?, ?, ?, ?, NOW(), NOW())',
+      "INSERT INTO permissions (permission_key, permission_name, description, category, created_at, updated_at) VALUES (?, ?, ?, ?, NOW(), NOW())",
       [permission_key, permission_name, description || null, category || null]
     );
 
     // Log the activity
     if (req.user?.id) {
       logActivity(
-        req.user.id, 
-        `Created new permission: ${permission_name} (${permission_key}) in category: ${category || 'No category'} with description: ${description || 'No description'}`, 
+        req.user.id,
+        `Created new permission: ${permission_name} (${permission_key}) in category: ${
+          category || "No category"
+        } with description: ${description || "No description"}`,
         req
       );
     }
-    
-    res.status(201).json({ message: 'Permission created successfully', id: result.insertId });
+
+    res
+      .status(201)
+      .json({
+        message: "Permission created successfully",
+        id: result.insertId,
+      });
   } catch (err) {
-    console.error('Error creating permission:', err);
-    res.status(500).json({ message: 'Internal Server Error' });
+    console.error("Error creating permission:", err);
+    res.status(500).json({ message: "Internal Server Error" });
   }
 };
 
@@ -1486,85 +1561,118 @@ exports.updatePermission = async (req, res) => {
   const { permission_name, description, category } = req.body;
 
   if (!permission_name) {
-    return res.status(400).json({ message: 'Permission name is required' });
+    return res.status(400).json({ message: "Permission name is required" });
   }
 
   try {
     // Get old permission data for logging
-    const [[oldPermission]] = await db.query('SELECT * FROM permissions WHERE permission_key = ?', [permissionKey]);
+    const [[oldPermission]] = await db.query(
+      "SELECT * FROM permissions WHERE permission_key = ?",
+      [permissionKey]
+    );
     if (!oldPermission) {
-      return res.status(404).json({ message: 'Permission not found' });
+      return res.status(404).json({ message: "Permission not found" });
     }
 
     const [result] = await db.query(
-      'UPDATE permissions SET permission_name = ?, description = ?, category = ?, updated_at = NOW() WHERE permission_key = ?',
+      "UPDATE permissions SET permission_name = ?, description = ?, category = ?, updated_at = NOW() WHERE permission_key = ?",
       [permission_name, description || null, category || null, permissionKey]
     );
 
     if (result.affectedRows === 0) {
-      return res.status(404).json({ message: 'Permission not found' });
+      return res.status(404).json({ message: "Permission not found" });
     }
 
     // Log the activity with changes
     if (req.user?.id) {
       const changes = [];
-      if (oldPermission.permission_name !== permission_name) changes.push(`name: '${oldPermission.permission_name}' → '${permission_name}'`);
-      if (oldPermission.description !== (description || null)) changes.push(`description: '${oldPermission.description}' → '${description || null}'`);
-      if (oldPermission.category !== (category || null)) changes.push(`category: '${oldPermission.category}' → '${category || null}'`);
-      
+      if (oldPermission.permission_name !== permission_name)
+        changes.push(
+          `name: '${oldPermission.permission_name}' → '${permission_name}'`
+        );
+      if (oldPermission.description !== (description || null))
+        changes.push(
+          `description: '${oldPermission.description}' → '${
+            description || null
+          }'`
+        );
+      if (oldPermission.category !== (category || null))
+        changes.push(
+          `category: '${oldPermission.category}' → '${category || null}'`
+        );
+
       logActivity(
-        req.user.id, 
-        `Updated permission ${permissionKey}: ${changes.length > 0 ? changes.join(', ') : 'No changes detected'}`, 
+        req.user.id,
+        `Updated permission ${permissionKey}: ${
+          changes.length > 0 ? changes.join(", ") : "No changes detected"
+        }`,
         req
       );
     }
 
-    res.json({ message: 'Permission updated successfully' });
+    res.json({ message: "Permission updated successfully" });
   } catch (err) {
-    console.error('Error updating permission:', err);
-    res.status(500).json({ message: 'Internal Server Error' });
+    console.error("Error updating permission:", err);
+    res.status(500).json({ message: "Internal Server Error" });
   }
 };
 
 // Delete permission
 exports.deletePermission = async (req, res) => {
   const { permissionKey } = req.params;
-  
+
   try {
     // Get permission data before deletion for logging
-    const [[permissionToDelete]] = await db.query('SELECT * FROM permissions WHERE permission_key = ?', [permissionKey]);
+    const [[permissionToDelete]] = await db.query(
+      "SELECT * FROM permissions WHERE permission_key = ?",
+      [permissionKey]
+    );
     if (!permissionToDelete) {
-      return res.status(404).json({ message: 'Permission not found' });
+      return res.status(404).json({ message: "Permission not found" });
     }
 
     // Get roles that have this permission for logging
     const [associatedRoles] = await db.query(
       `SELECT r.role_key, r.role_name FROM role_default_permissions rdp
        JOIN roles r ON r.id = rdp.role_id
-       WHERE rdp.permission_id = ?`, [permissionToDelete.id]);
-    const roleKeys = associatedRoles.map(row => `${row.role_name} (${row.role_key})`);
+       WHERE rdp.permission_id = ?`,
+      [permissionToDelete.id]
+    );
+    const roleKeys = associatedRoles.map(
+      (row) => `${row.role_name} (${row.role_key})`
+    );
 
-    const [result] = await db.query('DELETE FROM permissions WHERE permission_key = ?', [permissionKey]);
-    
+    const [result] = await db.query(
+      "DELETE FROM permissions WHERE permission_key = ?",
+      [permissionKey]
+    );
+
     if (result.affectedRows === 0) {
-      return res.status(404).json({ message: 'Permission not found' });
+      return res.status(404).json({ message: "Permission not found" });
     }
-    
+
     // Hapus juga relasi di role_default_permissions (CASCADE should handle this, but being explicit)
-    await db.query('DELETE FROM role_default_permissions WHERE permission_id = ?', [permissionToDelete.id]);
+    await db.query(
+      "DELETE FROM role_default_permissions WHERE permission_id = ?",
+      [permissionToDelete.id]
+    );
 
     // Log the activity
     if (req.user?.id) {
       logActivity(
-        req.user.id, 
-        `Deleted permission: ${permissionToDelete.permission_name} (${permissionKey}) from category: ${permissionToDelete.category || 'No category'}, removed from roles: [${roleKeys.join(', ') || 'No roles'}]`, 
+        req.user.id,
+        `Deleted permission: ${
+          permissionToDelete.permission_name
+        } (${permissionKey}) from category: ${
+          permissionToDelete.category || "No category"
+        }, removed from roles: [${roleKeys.join(", ") || "No roles"}]`,
         req
       );
     }
-    
-    res.json({ message: 'Permission deleted successfully' });
+
+    res.json({ message: "Permission deleted successfully" });
   } catch (err) {
-    console.error('Error deleting permission:', err);
-    res.status(500).json({ message: 'Internal Server Error' });
+    console.error("Error deleting permission:", err);
+    res.status(500).json({ message: "Internal Server Error" });
   }
 };
