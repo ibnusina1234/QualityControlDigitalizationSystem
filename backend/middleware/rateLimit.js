@@ -1,7 +1,7 @@
-// rateLimiter.js
+// rateLimiter.js - COMPLETE FIXED VERSION
 const rateLimit = require("express-rate-limit");
 const jwt = require("jsonwebtoken");
-const verifyToken = require("./auth"); // Middleware untuk verifikasi token
+const verifyToken = require("./auth");
 
 // Store untuk menyimpan whitelist dan blocked IPs
 const whitelistedIPs = new Set();
@@ -26,43 +26,73 @@ const removeFromWhitelist = (identifier, type = "ip") => {
   }
 };
 
+// FIXED: Consistent key generation untuk semua scenario
+const generateBlockKey = (req, type = "auto") => {
+  if (type === "user" && req.user) {
+    return `user_${req.user.id}`;
+  } else if (type === "ip") {
+    return `ip_${req.ip}`;
+  } else if (type === "login") {
+    // Login bisa dari IP atau user yang sudah dikenal
+    return req.user ? `user_${req.user.id}` : `ip_${req.ip}`;
+  } else if (type === "auto") {
+    // Auto-detect: prioritas user, fallback ke IP
+    return req.user ? `user_${req.user.id}` : `ip_${req.ip}`;
+  }
+  return `ip_${req.ip}`; // fallback
+};
+
 // Fungsi untuk block user secara manual
-const blockUser = (
-  userId,
-  reason = "manual_block",
-  duration = 30 * 60 * 1000
-) => {
+const blockUser = (userId, reason = "manual_block", duration = 30 * 60 * 1000) => {
   const key = `user_${userId}`;
   blockedStore.set(key, {
     count: 999,
     resetTime: Date.now() + duration,
     type: reason,
     blockedAt: Date.now(),
+    userId: userId,
+    manual: true // Flag untuk manual block
   });
-  console.log(`Manually blocked user: ${userId} for ${duration}ms`);
+  console.log(`🔒 Manually blocked user: ${userId} with key: ${key} for ${duration}ms`);
 };
 
 // Fungsi untuk unblock manual
 const unblockIdentifier = (identifier) => {
-  blockedStore.delete(identifier);
-  console.log(`Unblocked: ${identifier}`);
+  const deleted = blockedStore.delete(identifier);
+  console.log(`🔓 Unblocked: ${identifier} (${deleted ? 'success' : 'not found'})`);
+  return deleted;
 };
 
-// Fungsi untuk mendapatkan status blocked
+// ENHANCED: getBlockedStatus dengan auto-cleanup
 const getBlockedStatus = () => {
   const blocked = {};
+  const now = Date.now();
+  
   for (let [key, value] of blockedStore.entries()) {
+    // Auto-clean expired blocks
+    if (now > value.resetTime) {
+      blockedStore.delete(key);
+      console.log(`🧹 Auto-cleaned expired block: ${key}`);
+      continue;
+    }
+    
     blocked[key] = {
       count: value.count,
       resetTime: value.resetTime,
       type: value.type,
       blockedAt: value.blockedAt,
+      userId: value.userId || (key.startsWith('user_') ? key.replace('user_', '') : null),
+      timeLeft: value.resetTime - now,
+      manual: value.manual || false,
+      ip: value.ip || null
     };
   }
+  
+  console.log(`📊 getBlockedStatus: ${Object.keys(blocked).length} active blocks`);
   return blocked;
 };
 
-// Fungsi untuk cek apakah user diblok
+// FIXED: isUserBlocked dengan cleanup otomatis
 const isUserBlocked = (userId) => {
   const key = `user_${userId}`;
   const blockData = blockedStore.get(key);
@@ -72,16 +102,46 @@ const isUserBlocked = (userId) => {
   // Cek apakah waktu block sudah expired
   if (Date.now() > blockData.resetTime) {
     blockedStore.delete(key);
+    console.log(`🔓 Auto-unblocked expired user: ${userId}`);
     return false;
   }
 
   return true;
 };
 
+// ENHANCED: Check if IP is blocked
+const isIPBlocked = (ip) => {
+  const key = `ip_${ip}`;
+  const blockData = blockedStore.get(key);
+
+  if (!blockData) return false;
+
+  if (Date.now() > blockData.resetTime) {
+    blockedStore.delete(key);
+    console.log(`🔓 Auto-unblocked expired IP: ${ip}`);
+    return false;
+  }
+
+  return true;
+};
+
+// ENHANCED: Check if request is blocked (user or IP)
+const isRequestBlocked = (req) => {
+  // Prioritas: cek user block dulu, kemudian IP block
+  if (req.user && isUserBlocked(req.user.id)) {
+    return { blocked: true, type: 'user', key: `user_${req.user.id}` };
+  }
+  
+  if (isIPBlocked(req.ip)) {
+    return { blocked: true, type: 'ip', key: `ip_${req.ip}` };
+  }
+  
+  return { blocked: false };
+};
+
 // Custom skip function untuk whitelist
 const skipWhitelisted = (req) => {
   const ip = req.ip;
-
   if (whitelistedIPs.has(ip)) return true;
 
   const user = req.user;
@@ -90,16 +150,38 @@ const skipWhitelisted = (req) => {
   return false;
 };
 
-// Custom skip function untuk user yang diblok manual
-const skipBlocked = (req) => {
-  const user = req.user;
-  if (user && isUserBlocked(user.id)) {
-    return false;
+// CRITICAL: Block Check Middleware - HARUS DITERAPKAN DI SEMUA ROUTES
+const blockCheckMiddleware = (req, res, next) => {
+  // Skip whitelist
+  if (skipWhitelisted(req)) {
+    return next();
   }
 
-  return skipWhitelisted(req);
+  // Cek apakah request diblok
+  const blockStatus = isRequestBlocked(req);
+  
+  if (blockStatus.blocked) {
+    const blockData = blockedStore.get(blockStatus.key);
+    const resetTime = new Date(blockData.resetTime);
+    
+    console.log(`🚫 Blocked request: ${blockStatus.type} - ${blockStatus.key}`);
+    
+    return res.status(429).json({
+      error: blockStatus.type === 'user' 
+        ? "Akun Anda telah diblokir oleh administrator." 
+        : "IP Anda telah diblokir sementara.",
+      blocked: true,
+      type: blockStatus.type,
+      blockedUntil: resetTime.toISOString(),
+      reason: blockData.type || "unknown",
+      timeLeft: blockData.resetTime - Date.now()
+    });
+  }
+
+  next();
 };
 
+// FIXED: Login Rate Limiter dengan user-centric approach
 const loginRateLimiter = rateLimit({
   windowMs: 5 * 60 * 1000, // 5 menit
   max: 5,
@@ -110,26 +192,37 @@ const loginRateLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   skip: skipWhitelisted,
-  // Handler ketika limit tercapai - mengganti onLimitReached yang deprecated
+  
+  keyGenerator: (req) => {
+    // FIXED: Gunakan email atau IP untuk login attempts
+    const email = req.body?.email;
+    return email ? `login_${email}` : `ip_${req.ip}`;
+  },
+  
   handler: (req, res, next, options) => {
-    const key = req.ip;
+    const email = req.body?.email;
+    const key = email ? `login_${email}` : `ip_${req.ip}`;
+    
+    // FIXED: Store dengan format yang konsisten
     blockedStore.set(key, {
       count: options.max,
       resetTime: Date.now() + options.windowMs,
-      type: "login",
+      type: "login_rate_limit",
       blockedAt: Date.now(),
+      ip: req.ip,
+      email: email
     });
-    console.log(`Login rate limit reached for IP: ${key}`);
+    
+    console.log(`🚫 Login rate limit reached for key: ${key}`);
 
-    // Return error response
     return res.status(429).json({
-      error:
-        "Terlalu banyak percobaan login. Silakan coba lagi setelah 5 menit.",
+      error: "Terlalu banyak percobaan login. Silakan coba lagi setelah 5 menit.",
       retryAfter: 5 * 60 * 1000,
     });
   },
 });
 
+// FIXED: Dynamic Rate Limiter dengan improved logic
 const dynamicRateLimiter = rateLimit({
   windowMs: 10 * 60 * 1000, // 10 menit
 
@@ -137,8 +230,10 @@ const dynamicRateLimiter = rateLimit({
     const user = req.user;
     if (!user) return 50;
 
+    // CRITICAL: Return 0 jika user diblok manual
     if (isUserBlocked(user.id)) return 0;
 
+    if (user.userrole === "super admin") return 2000;
     if (user.userrole === "admin") return 1000;
     if (user.userrole === "user") return 200;
 
@@ -146,8 +241,7 @@ const dynamicRateLimiter = rateLimit({
   },
 
   keyGenerator: (req) => {
-    const user = req.user;
-    return user ? `user_${user.id}` : `ip_${req.ip}`;
+    return generateBlockKey(req, "auto");
   },
 
   message: (req) => {
@@ -158,8 +252,10 @@ const dynamicRateLimiter = rateLimit({
       const resetTime = new Date(blockData.resetTime);
       return {
         error: "Akun Anda telah diblokir oleh administrator.",
+        blocked: true,
         blockedUntil: resetTime.toISOString(),
         reason: blockData.type || "unknown",
+        timeLeft: blockData.resetTime - Date.now()
       };
     }
 
@@ -170,37 +266,33 @@ const dynamicRateLimiter = rateLimit({
   },
 
   skip: (req) => {
-    const user = req.user;
-    if (user && isUserBlocked(user.id)) return false;
-
-    // implementasi skipWhitelisted (opsional, jika kamu punya)
-    // return skipWhitelisted(req);
-    return false;
+    // Skip whitelist tapi TIDAK skip blocked users (akan handle di message)
+    return skipWhitelisted(req);
   },
 
   handler: (req, res, next, options) => {
     const key = options.keyGenerator(req);
+    const user = req.user;
 
-    // Cegah overwrite blokir manual
+    // FIXED: Jangan overwrite manual blocks
     const existingBlock = blockedStore.get(key);
-    if (!existingBlock || existingBlock.type !== "manual_block") {
+    if (existingBlock && existingBlock.manual) {
+      console.log(`⚠️ Preserving manual block for ${key}`);
+    } else {
       blockedStore.set(key, {
-        count:
-          typeof options.max === "function"
-            ? options.max(req, res)
-            : options.max,
+        count: typeof options.max === "function" ? options.max(req, res) : options.max,
         resetTime: Date.now() + options.windowMs,
-        type: "api",
+        type: "api_rate_limit",
         blockedAt: Date.now(),
+        userId: user ? user.id : null,
+        ip: req.ip,
+        manual: false
       });
+      
+      console.log(`🔒 API rate limit triggered for ${key} (User: ${user ? user.id : 'anonymous'})`);
     }
 
-    console.warn(`🔒 Rate limit triggered for ${key}`);
-
-    const message =
-      typeof options.message === "function"
-        ? options.message(req)
-        : options.message;
+    const message = typeof options.message === "function" ? options.message(req) : options.message;
     return res.status(429).json(message);
   },
 });
@@ -210,18 +302,59 @@ const adminUnblockMiddleware = (req, res, next) => {
   const user = req.user;
 
   if (!user || (user.userrole !== "admin" && user.userrole !== "super admin")) {
-    return res
-      .status(403)
-      .json({ error: "Hanya admin yang dapat melakukan operasi ini" });
+    return res.status(403).json({ 
+      error: "Hanya admin yang dapat melakukan operasi ini" 
+    });
   }
 
   req.user = user;
   next();
 };
 
-// Routes untuk management
+// ENHANCED: Management routes
 const createManagementRoutes = (app) => {
-  // Endpoint untuk block user
+  // Enhanced blocked status endpoint
+  app.get("/admin/blocked-status", adminUnblockMiddleware, (req, res) => {
+    const blockedData = getBlockedStatus();
+    
+    // Categorize blocks
+    const userBlocks = {};
+    const ipBlocks = {};
+    const loginBlocks = {};
+    
+    Object.entries(blockedData).forEach(([key, data]) => {
+      if (key.startsWith('user_')) {
+        userBlocks[key] = data;
+      } else if (key.startsWith('ip_')) {
+        ipBlocks[key] = data;
+      } else if (key.startsWith('login_')) {
+        loginBlocks[key] = data;
+      }
+    });
+    
+    res.json({
+      success: true,
+      data: {
+        blocked: blockedData,
+        userBlocks: userBlocks,
+        ipBlocks: ipBlocks,
+        loginBlocks: loginBlocks,
+        totalBlocked: Object.keys(blockedData).length,
+        whitelisted: {
+          ips: Array.from(whitelistedIPs),
+          users: Array.from(whitelistedUsers),
+        },
+        debug: {
+          timestamp: new Date().toISOString(),
+          activeKeys: Object.keys(blockedData)
+        }
+      },
+    });
+    
+    console.log(`📊 Admin ${req.user.email} requested blocked status: ${Object.keys(blockedData).length} blocks`);
+  });
+
+  // Block user endpoint
   app.post("/admin/block-user", adminUnblockMiddleware, (req, res) => {
     const { userId, userEmail, reason = "manual_block", duration } = req.body;
 
@@ -232,10 +365,8 @@ const createManagementRoutes = (app) => {
       });
     }
 
-    // Default duration 30 menit untuk manual block
     const blockDuration = duration || 30 * 60 * 1000;
-
-    // Block user
+    
     blockUser(userId, reason, blockDuration);
 
     res.json({
@@ -245,238 +376,108 @@ const createManagementRoutes = (app) => {
         blockedUntil: new Date(Date.now() + blockDuration).toISOString(),
         duration: blockDuration,
         timestamp: new Date().toISOString(),
+        blockedBy: req.user.email
       },
     });
 
-    console.log(
-      `Admin ${req.user.email} blocked user ${userId} (${userEmail})`
-    );
+    console.log(`👤 Admin ${req.user.email} manually blocked user ${userId} (${userEmail})`);
   });
 
-  // Endpoint untuk unblock user
+  // Enhanced unblock endpoint
   app.post("/admin/unblock-user", adminUnblockMiddleware, (req, res) => {
-    const { userId, addToWhitelistTemp = false } = req.body;
+    const { userId, identifier, addToWhitelistTemp = false } = req.body;
 
-    if (!userId) {
+    const targetKey = identifier || `user_${userId}`;
+
+    if (!targetKey) {
       return res.status(400).json({
-        error: "User ID diperlukan",
+        error: "User ID atau identifier diperlukan",
         success: false,
       });
     }
 
-    const identifier = `user_${userId}`;
+    const unblocked = unblockIdentifier(targetKey);
 
-    // Unblock dari rate limiter store
-    unblockIdentifier(identifier);
-
-    // Jika ingin menambahkan ke whitelist sementara
-    if (addToWhitelistTemp) {
+    if (addToWhitelistTemp && userId) {
       addToWhitelist(userId.toString(), "user");
     }
 
     res.json({
       success: true,
-      message: `User ${userId} berhasil di-unblock`,
+      message: `Successfully unblocked: ${targetKey}`,
       data: {
-        unblocked: identifier,
+        unblocked: targetKey,
+        found: unblocked,
         addedToWhitelist: addToWhitelistTemp,
         timestamp: new Date().toISOString(),
+        unblockedBy: req.user.email
       },
     });
 
-    console.log(`Admin ${req.user.email} unblocked user ${userId}`);
+    console.log(`🔓 Admin ${req.user.email} unblocked ${targetKey}`);
   });
 
-  // Endpoint untuk unblock IP atau identifier lainnya
-  app.post("/admin/unblock", adminUnblockMiddleware, (req, res) => {
-    const { identifier, type } = req.body;
-
-    if (!identifier) {
-      return res.status(400).json({
-        error: "Identifier diperlukan",
-        success: false,
-      });
-    }
-
-    // Unblock dari rate limiter store
-    unblockIdentifier(identifier);
-
-    // Jika ingin menambahkan ke whitelist sementara
-    if (type === "whitelist") {
-      const identifierType = identifier.startsWith("user_") ? "user" : "ip";
-      const cleanId = identifier.replace(/^(user_|ip_)/, "");
-      addToWhitelist(cleanId, identifierType);
-    }
-
-    res.json({
-      success: true,
-      message: `Successfully unblocked: ${identifier}`,
-      data: {
-        timestamp: new Date().toISOString(),
-      },
-    });
-
-    console.log(`Admin ${req.user.email} unblocked ${identifier}`);
-  });
-
-  // Endpoint untuk melihat status blocked
-  app.get("/admin/blocked-status", adminUnblockMiddleware, (req, res) => {
-    res.json({
-      success: true,
-      data: {
-        blocked: getBlockedStatus(),
-        whitelisted: {
-          ips: Array.from(whitelistedIPs),
-          users: Array.from(whitelistedUsers),
-        },
-      },
-    });
-  });
-
-  // Endpoint untuk menambah/hapus whitelist
-  app.post("/admin/whitelist", adminUnblockMiddleware, (req, res) => {
-    const { identifier, type = "ip", action = "add" } = req.body;
-
-    if (!identifier) {
-      return res.status(400).json({
-        error: "Identifier diperlukan",
-        success: false,
-      });
-    }
-
-    if (action === "add") {
-      addToWhitelist(identifier, type);
-      res.json({
-        success: true,
-        message: `Added ${identifier} to ${type} whitelist`,
-      });
-    } else if (action === "remove") {
-      removeFromWhitelist(identifier, type);
-      res.json({
-        success: true,
-        message: `Removed ${identifier} from ${type} whitelist`,
-      });
-    } else {
-      res.status(400).json({
-        error: "Action harus add atau remove",
-        success: false,
-      });
-    }
-
-    console.log(
-      `Admin ${req.user.email} ${action}ed ${identifier} ${
-        action === "add" ? "to" : "from"
-      } ${type} whitelist`
-    );
-  });
-
-  // Endpoint untuk emergency unblock all
+  // Emergency unblock all
   app.post("/admin/unblock-all", adminUnblockMiddleware, (req, res) => {
     const beforeCount = blockedStore.size;
+    const keys = Array.from(blockedStore.keys());
+    
     blockedStore.clear();
+    
     res.json({
       success: true,
       message: "All blocks cleared",
       data: {
         clearedCount: beforeCount,
+        clearedKeys: keys,
         timestamp: new Date().toISOString(),
+        clearedBy: req.user.email
       },
     });
 
-    console.log(
-      `Admin ${req.user.email} cleared all blocks (${beforeCount} entries)`
-    );
+    console.log(`🧹 Admin ${req.user.email} cleared all blocks (${beforeCount} entries): ${keys.join(', ')}`);
   });
 
-  // Endpoint untuk mendapatkan detail block user tertentu
-  app.get(
-    "/admin/user-block-status/:userId",
-    adminUnblockMiddleware,
-    (req, res) => {
-      const { userId } = req.params;
-      const key = `user_${userId}`;
-      const blockData = blockedStore.get(key);
+  // Get specific user block status
+  app.get("/admin/user-block-status/:userId", adminUnblockMiddleware, (req, res) => {
+    const { userId } = req.params;
+    const key = `user_${userId}`;
+    const blockData = blockedStore.get(key);
 
-      if (!blockData) {
-        return res.json({
-          success: true,
-          data: {
-            isBlocked: false,
-            message: "User tidak dalam status blocked",
-          },
-        });
-      }
-
-      // Cek apakah expired
-      if (Date.now() > blockData.resetTime) {
-        blockedStore.delete(key);
-        return res.json({
-          success: true,
-          data: {
-            isBlocked: false,
-            message: "Block sudah expired dan telah dihapus",
-          },
-        });
-      }
-
-      res.json({
+    if (!blockData) {
+      return res.json({
         success: true,
         data: {
-          isBlocked: true,
-          blockData: {
-            ...blockData,
-            timeLeft: blockData.resetTime - Date.now(),
-            resetTime: new Date(blockData.resetTime).toISOString(),
-            blockedAt: new Date(blockData.blockedAt).toISOString(),
-          },
+          isBlocked: false,
+          message: "User tidak dalam status blocked",
         },
       });
     }
-  );
 
-  // Endpoint untuk modify block duration
-  app.put("/admin/modify-block/:userId", adminUnblockMiddleware, (req, res) => {
-    const { userId } = req.params;
-    const { duration, reason } = req.body;
-
-    if (!duration || duration < 0) {
-      return res.status(400).json({
-        error: "Duration harus berupa angka positif (dalam milliseconds)",
-        success: false,
+    // Cek apakah expired
+    if (Date.now() > blockData.resetTime) {
+      blockedStore.delete(key);
+      return res.json({
+        success: true,
+        data: {
+          isBlocked: false,
+          message: "Block sudah expired dan telah dihapus",
+        },
       });
     }
-
-    const key = `user_${userId}`;
-    const existingBlock = blockedStore.get(key);
-
-    if (!existingBlock) {
-      return res.status(404).json({
-        error: "User tidak dalam status blocked",
-        success: false,
-      });
-    }
-
-    // Update block duration
-    blockedStore.set(key, {
-      ...existingBlock,
-      resetTime: Date.now() + duration,
-      type: reason || existingBlock.type,
-      modifiedAt: Date.now(),
-      modifiedBy: req.user.email,
-    });
 
     res.json({
       success: true,
-      message: `Block duration untuk user ${userId} berhasil diubah`,
       data: {
-        newResetTime: new Date(Date.now() + duration).toISOString(),
-        duration: duration,
+        isBlocked: true,
+        blockData: {
+          ...blockData,
+          timeLeft: blockData.resetTime - Date.now(),
+          resetTime: new Date(blockData.resetTime).toISOString(),
+          blockedAt: new Date(blockData.blockedAt).toISOString(),
+        },
       },
     });
-
-    console.log(
-      `Admin ${req.user.email} modified block duration for user ${userId}`
-    );
   });
 };
 
@@ -484,36 +485,59 @@ const createManagementRoutes = (app) => {
 setInterval(() => {
   const now = Date.now();
   let cleanedCount = 0;
+  const cleanedKeys = [];
 
   for (let [key, value] of blockedStore.entries()) {
     if (now > value.resetTime) {
       blockedStore.delete(key);
       cleanedCount++;
-      console.log(`Auto-unblocked expired: ${key}`);
+      cleanedKeys.push(key);
     }
   }
 
   if (cleanedCount > 0) {
-    console.log(`Auto-cleanup: removed ${cleanedCount} expired blocks`);
+    console.log(`🧹 Auto-cleanup: removed ${cleanedCount} expired blocks: ${cleanedKeys.join(', ')}`);
   }
 }, 60000); // Check setiap menit
 
-// Periodic log untuk monitoring
+// Monitoring
 setInterval(() => {
   const blockedCount = blockedStore.size;
-  const whitelistedIPCount = whitelistedIPs.size;
-  const whitelistedUserCount = whitelistedUsers.size;
-
-  if (blockedCount > 0 || whitelistedIPCount > 0 || whitelistedUserCount > 0) {
-    console.log(
-      `Rate Limiter Status - Blocked: ${blockedCount}, Whitelisted IPs: ${whitelistedIPCount}, Whitelisted Users: ${whitelistedUserCount}`
-    );
+  
+  if (blockedCount > 0) {
+    const blockTypes = {};
+    const userBlocks = [];
+    const ipBlocks = [];
+    const loginBlocks = [];
+    
+    for (let [key, value] of blockedStore.entries()) {
+      blockTypes[value.type] = (blockTypes[value.type] || 0) + 1;
+      
+      if (key.startsWith('user_')) {
+        userBlocks.push(key);
+      } else if (key.startsWith('ip_')) {
+        ipBlocks.push(key);
+      } else if (key.startsWith('login_')) {
+        loginBlocks.push(key);
+      }
+    }
+    
+    console.log(`📊 Rate Limiter Status:`, {
+      totalBlocked: blockedCount,
+      userBlocks: userBlocks.length,
+      ipBlocks: ipBlocks.length,
+      loginBlocks: loginBlocks.length,
+      types: blockTypes,
+      whitelistedIPs: whitelistedIPs.size,
+      whitelistedUsers: whitelistedUsers.size
+    });
   }
 }, 5 * 60 * 1000); // Log setiap 5 menit
 
 module.exports = {
   loginRateLimiter,
   dynamicRateLimiter,
+  blockCheckMiddleware, // CRITICAL: Export middleware ini
   adminUnblockMiddleware,
   createManagementRoutes,
   addToWhitelist,
@@ -522,4 +546,7 @@ module.exports = {
   getBlockedStatus,
   blockUser,
   isUserBlocked,
+  isIPBlocked,
+  isRequestBlocked,
+  generateBlockKey,
 };
