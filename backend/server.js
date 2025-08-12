@@ -260,10 +260,10 @@ server.listen(PORT, () => {
   // Test import untuk memastikan tidak ada error
   console.log(`🔍 Testing imports...`);
   try {
-    const testFunctions = require("./middleware/rateLimiter");
-    console.log(`   ✅ rateLimiter.js imported successfully`);
+    const testFunctions = require("./middleware/rateLimit");
+    console.log(`   ✅ rateLimit.js imported successfully`);
     console.log(`   ✅ Available functions: ${Object.keys(testFunctions).join(', ')}`);
   } catch (error) {
-    console.error(`   ❌ Error importing rateLimiter.js:`, error.message);
+    console.error(`   ❌ Error importing rateLimit.js:`, error.message);
   }
 });
