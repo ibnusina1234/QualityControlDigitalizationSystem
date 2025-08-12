@@ -104,13 +104,29 @@ app.use("/users/Register", blockCheckMiddleware); // Cek block status dulu
 app.use("/users/Register", loginRateLimiter);     // Kemudian rate limit
 
 // STEP 2: Apply token verification untuk protected routes
+app.use("/users/*", (req, res, next) => {
+  console.log("=== USERS MIDDLEWARE DEBUG ===");
+  console.log("Original URL:", req.originalUrl);
+  console.log("Base URL:", req.baseUrl);
+  console.log("Path:", req.path);
+  console.log("Full URL:", req.url);
+  console.log("Method:", req.method);
+  console.log("Route matched: /users/*");
+  console.log("Check /Login:", req.path === "/Login");
+  console.log("Check /Register:", req.path === "/Register");
+  console.log("Should skip?", req.path === "/Login" || req.path === "/Register");
+  console.log("===============================");
+  next();
+});
 // Semua routes kecuali yang public perlu authentication
 app.use("/users/*", (req, res, next) => {
   // Skip untuk login dan register
   if (req.path === "/Login" || req.path === "/Register") {
+    console.log("✅ SKIPPING verifyToken for path:", req.path);
     return next();
   }
-  // Gunakan sebagai middleware
+  
+  console.log("🔒 CALLING verifyToken for path:", req.path);
   verifyToken(req, res, next);
 });
 
