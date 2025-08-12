@@ -121,7 +121,7 @@ app.use("/users/*", (req, res, next) => {
 // Semua routes kecuali yang public perlu authentication
 app.use("/users/*", (req, res, next) => {
   // Skip untuk login dan register
-  if (req.path === "/users/Login" || req.path === "/users/Register") {
+  if (req.originalUrl === "/users/Login" || req.originalUrl === "/users/Register") {
     console.log("✅ SKIPPING verifyToken for path:", req.path);
     return next();
   }
@@ -140,7 +140,7 @@ app.use("/admin/*", verifyToken);
 // STEP 3: CRITICAL - Apply block check middleware SETELAH verifyToken
 // Ini akan mencegah user yang diblok mengakses sistem
 app.use("/users/*", (req, res, next) => {
-  if (req.path === "/users/Login" || req.path === "/users/Register") {
+  if (req.originalUrl === "/users/Login" || req.originalUrl === "/users/Register") {
     return next();
   }
   blockCheckMiddleware(req, res, next);
@@ -155,7 +155,7 @@ app.use("/admin/*", blockCheckMiddleware);
 
 // STEP 4: Apply dynamic rate limiter untuk protected routes
 app.use("/users/*", (req, res, next) => {
-  if (req.path === "/users/Login" || req.path === "/users/Register") {
+  if (req.originalUrl === "/users/Login" || req.originalUrl === "/users/Register") {
     return next();
   }
   dynamicRateLimiter(req, res, next);
