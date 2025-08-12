@@ -28,7 +28,7 @@ const {
   dynamicRateLimiter, 
   blockCheckMiddleware,
   createManagementRoutes 
-} = require("./middleware/rateLimiter");
+} = require("./middleware/rateLimit");
 
 // Import auth middleware
 const { verifyToken } = require("./middleware/auth");
