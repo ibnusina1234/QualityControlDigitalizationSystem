@@ -107,7 +107,7 @@ app.use("/users/register", loginRateLimiter);     // Kemudian rate limit
 // Semua routes kecuali yang public perlu authentication
 app.use("/users/*", (req, res, next) => {
   // Skip untuk login dan register
-  if (req.path === "/login" || req.path === "/register") {
+  if (req.path === "/Login" || req.path === "/Register") {
     return next();
   }
   // Gunakan sebagai middleware
