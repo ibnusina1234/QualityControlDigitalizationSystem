@@ -23,69 +23,69 @@ const monitoringData = require("../controllers/monitoringRuangan");
 
 const { sendStatusEmail } = require("../utils/sendEmailToUser");
 const {
-      dynamicRateLimiter,
-      loginRateLimiter,
+  dynamicRateLimiter,
+  loginRateLimiter,
 } = require("../middleware/rateLimit");
 const parsePermissions = require("../middleware/parsePermissions");
 const {
-      registerSchema,
-      loginSchema,
-      updateProfileSchema,
-      updateUserStatusSchema,
+  registerSchema,
+  loginSchema,
+  updateProfileSchema,
+  updateUserStatusSchema,
 } = require("../Validations/userValidations");
 
 // Valid extensions
 const ALLOWED_EXTENSIONS = /\.(jpg|jpeg|png|webp)$/i;
 const ALLOWED_MIME_TYPES = ["image/jpeg", "image/png", "image/webp"];
 const storage = multer.diskStorage({
-      destination: function (req, file, cb) {
-            const uploadDir = path.join(__dirname, "../public/uploads");
-            if (!fs.existsSync(uploadDir)) {
-                  fs.mkdirSync(uploadDir, { recursive: true });
-            }
-            cb(null, uploadDir);
-      },
-      filename: function (req, file, cb) {
-            const { itemId, itemType } = req.body;
-            const ext = path.extname(file.originalname).toLowerCase();
+  destination: function (req, file, cb) {
+    const uploadDir = path.join(__dirname, "../public/uploads");
+    if (!fs.existsSync(uploadDir)) {
+      fs.mkdirSync(uploadDir, { recursive: true });
+    }
+    cb(null, uploadDir);
+  },
+  filename: function (req, file, cb) {
+    const { itemId, itemType } = req.body;
+    const ext = path.extname(file.originalname).toLowerCase();
 
-            const safeName =
-                  itemType && itemId
-                        ? `${itemType}_${itemId}${ext}`
-                        : `${Date.now()}-${Math.round(Math.random() * 1e9)}${ext}`;
+    const safeName =
+      itemType && itemId
+        ? `${itemType}_${itemId}${ext}`
+        : `${Date.now()}-${Math.round(Math.random() * 1e9)}${ext}`;
 
-            cb(null, safeName.replace(/[^a-z0-9_.-]/gi, "_")); // sanitasi nama file
-      },
+    cb(null, safeName.replace(/[^a-z0-9_.-]/gi, "_")); // sanitasi nama file
+  },
 });
 
 const fileFilter = (req, file, cb) => {
-      const ext = path.extname(file.originalname).toLowerCase();
-      const mime = file.mimetype;
+  const ext = path.extname(file.originalname).toLowerCase();
+  const mime = file.mimetype;
 
-      if (ALLOWED_EXTENSIONS.test(ext) && ALLOWED_MIME_TYPES.includes(mime)) {
-            cb(null, true);
-      } else {
-            cb(
-                  new Error(
-                        "Hanya file gambar dengan format jpg, jpeg, png, webp yang diperbolehkan."
-                  )
-            );
-      }
+  if (ALLOWED_EXTENSIONS.test(ext) && ALLOWED_MIME_TYPES.includes(mime)) {
+    cb(null, true);
+  } else {
+    cb(
+      new Error(
+        "Hanya file gambar dengan format jpg, jpeg, png, webp yang diperbolehkan."
+      )
+    );
+  }
 };
 
 const upload = multer({
-      storage,
-      limits: { fileSize: 10 * 1024 * 1024 }, // Maks 10MB
-      fileFilter,
+  storage,
+  limits: { fileSize: 10 * 1024 * 1024 }, // Maks 10MB
+  fileFilter,
 });
 
 // 📌 ROUTES
 // 🔹 Upload file
 router.post("/upload", upload.single("image"), (req, res) => {
-      if (!req.file) {
-            return res.status(400).json({ error: "No file uploaded" });
-      }
-      res.json({ imageUrl: `/uploads/${req.file.filename}` });
+  if (!req.file) {
+    return res.status(400).json({ error: "No file uploaded" });
+  }
+  res.json({ imageUrl: `/uploads/${req.file.filename}` });
 });
 
 // 🔹 Check email routes
@@ -93,13 +93,13 @@ router.post("/check-email", userController.checkEmail);
 
 // 🔹 Registrasi pengguna baru
 router.post(
-      "/Register",
-      dynamicRateLimiter,
-      upload.single("img"),
-      parsePermissions,
-      validate(registerSchema),
-      sanitizeInput,
-      userController.registerUser
+  "/Register",
+  dynamicRateLimiter,
+  upload.single("img"),
+  parsePermissions,
+  validate(registerSchema),
+  sanitizeInput,
+  userController.registerUser
 );
 
 //mendapatkan list akses user
@@ -110,25 +110,25 @@ router.put("/access/:id", verifyToken, userController.updateUserAccess);
 
 // 🔹 Login pengguna
 router.post(
-      "/Login",
-      loginRateLimiter,
-      [
-            body("email").isEmail().withMessage("Email tidak valid"),
-            body("password").notEmpty().withMessage("Password wajib diisi"),
-            validatePassword,
-            validate(loginSchema),
-            sanitizeInput,
-      ],
-      userController.loginUser
+  "/Login",
+  loginRateLimiter,
+  [
+    body("email").isEmail().withMessage("Email tidak valid"),
+    body("password").notEmpty().withMessage("Password wajib diisi"),
+    validatePassword,
+    validate(loginSchema),
+    sanitizeInput,
+  ],
+  userController.loginUser
 );
 
 // 🔹 Logout pengguna
 router.post(
-      "/logout",
-      dynamicRateLimiter,
-      verifyToken,
-      updateTokenExpiry,
-      userController.logoutUser
+  "/logout",
+  dynamicRateLimiter,
+  verifyToken,
+  updateTokenExpiry,
+  userController.logoutUser
 );
 
 // 🔹 send email to alert
@@ -136,134 +136,134 @@ router.post("/alert", userController.sendTemperatureAlert);
 
 //🔹 update token
 router.post(
-      "/users/updateToken",
-      verifyToken,
-      updateTokenExpiry,
-      (req, res) => {
-            res.json({ message: "Token expiry updated successfully" });
-      }
+  "/users/updateToken",
+  verifyToken,
+  updateTokenExpiry,
+  (req, res) => {
+    res.json({ message: "Token expiry updated successfully" });
+  }
 );
 
 // 🔹 Verifikasi token (dipanggil saat refresh)
 router.get("/verify-token", verifyToken, updateTokenExpiry, (req, res) => {
-      res.json({ message: "Token valid", user: req.user });
+  res.json({ message: "Token valid", user: req.user });
 });
 
 // 🔹 Mendapatkan profil pengguna
 router.get(
-      "/Profile",
-      verifyToken,
-      updateTokenExpiry,
-      userController.getProfile
+  "/Profile",
+  verifyToken,
+  updateTokenExpiry,
+  userController.getProfile
 );
 
 // 🔹 Mendapatkan userrole
 router.get(
-      "/userrole/:id",
-      verifyToken,
-      updateTokenExpiry,
-      userController.getUserRole
+  "/userrole/:id",
+  verifyToken,
+  updateTokenExpiry,
+  userController.getUserRole
 );
 
 // 🔹 Mendapatkan semua role dan permission
 router.get(
-      "/roles",
-      verifyToken,
-      dynamicRateLimiter,
-      userController.getAllRolesWithPermissions
+  "/roles",
+  verifyToken,
+  dynamicRateLimiter,
+  userController.getAllRolesWithPermissions
 );
 router.get(
-      "/permissions",
-      dynamicRateLimiter,
-      userController.getAllPermissions
+  "/permissions",
+  dynamicRateLimiter,
+  userController.getAllPermissions
 );
 router.get(
-      "/roles/:roleKey/permissions",
-      verifyToken,
-      dynamicRateLimiter,
-      userController.getPermissionsByRoleKey
+  "/roles/:roleKey/permissions",
+  verifyToken,
+  dynamicRateLimiter,
+  userController.getPermissionsByRoleKey
 );
 router.put(
-      "/roles/:roleKey/permissions",
-      verifyToken,
-      dynamicRateLimiter,
-      userController.updatePermissionsForRole
+  "/roles/:roleKey/permissions",
+  verifyToken,
+  dynamicRateLimiter,
+  userController.updatePermissionsForRole
 );
 
 //mengedit role dan permission
 router.put(
-      "/roles/:roleKey",
-      verifyToken,
-      dynamicRateLimiter,
-      userController.updateRole
+  "/roles/:roleKey",
+  verifyToken,
+  dynamicRateLimiter,
+  userController.updateRole
 );
 // menambahkan role baru
 router.post(
-      "/roles",
-      verifyToken,
-      dynamicRateLimiter,
-      userController.createRole
+  "/roles",
+  verifyToken,
+  dynamicRateLimiter,
+  userController.createRole
 );
 //menghapus role
 router.delete(
-      "/roles/:roleKey",
-      verifyToken,
-      dynamicRateLimiter,
-      userController.deleteRole
+  "/roles/:roleKey",
+  verifyToken,
+  dynamicRateLimiter,
+  userController.deleteRole
 );
 //menambahkan permission baru
 router.post(
-      "/permissions",
-      verifyToken,
-      dynamicRateLimiter,
-      userController.createPermission
+  "/permissions",
+  verifyToken,
+  dynamicRateLimiter,
+  userController.createPermission
 );
 //mengupdate permission
 router.put(
-      "/permissions/:permissionKey",
-      verifyToken,
-      dynamicRateLimiter,
-      userController.updatePermission
+  "/permissions/:permissionKey",
+  verifyToken,
+  dynamicRateLimiter,
+  userController.updatePermission
 );
 //menghapus permission
 router.delete(
-      "/permissions/:permissionKey",
-      verifyToken,
-      dynamicRateLimiter,
-      userController.deletePermission
+  "/permissions/:permissionKey",
+  verifyToken,
+  dynamicRateLimiter,
+  userController.deletePermission
 );
 
 // 🔹 Memperbarui profil pengguna
 router.put(
-      "/profile",
-      dynamicRateLimiter,
-      verifyToken,
-      updateTokenExpiry,
-      upload.single("img"),
-      userController.updateProfile
+  "/profile",
+  dynamicRateLimiter,
+  verifyToken,
+  updateTokenExpiry,
+  upload.single("img"),
+  userController.updateProfile
 );
 
 router.put(
-      "/userrole/:id",
-      dynamicRateLimiter,
-      verifyToken,
-      userController.updateUserRole
+  "/userrole/:id",
+  dynamicRateLimiter,
+  verifyToken,
+  userController.updateUserRole
 );
 
 // 🔹 Permintaan reset password
 router.post(
-      "/request-password-reset",
-      dynamicRateLimiter,
-      userController.requestPasswordReset
+  "/request-password-reset",
+  dynamicRateLimiter,
+  userController.requestPasswordReset
 );
 
 // 🔹 Reset password
 router.post(
-      "/reset-password",
-      dynamicRateLimiter,
-      sanitizeInput,
-      validatePassword,
-      userController.resetPassword
+  "/reset-password",
+  dynamicRateLimiter,
+  sanitizeInput,
+  validatePassword,
+  userController.resetPassword
 );
 
 // 🔹 Mendapatkan jumlah user QC
@@ -275,7 +275,7 @@ router.get("/auth/me", verifyToken, async (req, res) => {
   console.log("=== AUTH/ME ENDPOINT START ===");
   console.log("req.user exists:", !!req.user);
   console.log("req.user content:", req.user);
-  
+
   if (!req.user) {
     console.log("❌ No req.user - returning 401");
     return res.status(401).json({ message: "Unauthorized" });
@@ -301,7 +301,8 @@ router.get("/auth/me", verifyToken, async (req, res) => {
     console.log("📍 Step 2: Found roleId:", roleId);
 
     console.log("📍 Step 3: Querying permissions");
-    const [permissions] = await db.execute(`
+    const [permissions] = await db.execute(
+      `
       SELECT 
         p.permission_key,
         p.permission_name,
@@ -313,11 +314,15 @@ router.get("/auth/me", verifyToken, async (req, res) => {
         permissions p ON rdp.permission_id = p.id
       WHERE 
         rdp.role_id = ?
-    `, [roleId]);
+    `,
+      [roleId]
+    );
     console.log("📍 Step 3 result:", permissions);
 
     // Convert permissions to array of permission_key only
-    const permissionKeys = permissions.map(permission => permission.permission_key);
+    const permissionKeys = permissions.map(
+      (permission) => permission.permission_key
+    );
     console.log("📍 Step 4: Converted permissions to keys:", permissionKeys);
 
     console.log("📍 Step 5: Sending response");
@@ -332,7 +337,6 @@ router.get("/auth/me", verifyToken, async (req, res) => {
       permissions: permissionKeys,
     });
     console.log("✅ Response sent successfully");
-    
   } catch (err) {
     console.error("=== AUTH/ME ERROR ===");
     console.error("Error message:", err.message);
@@ -342,25 +346,29 @@ router.get("/auth/me", verifyToken, async (req, res) => {
     console.error("Full error object:", err);
     console.error("Stack trace:", err.stack);
     console.error("========================");
-    
-    res.status(500).json({ 
+
+    res.status(500).json({
       message: "Internal server error",
-      error: process.env.NODE_ENV === 'development' ? err.message : 'Database error',
-      details: process.env.NODE_ENV === 'development' ? {
-        code: err.code,
-        errno: err.errno,
-        sqlState: err.sqlState
-      } : undefined
+      error:
+        process.env.NODE_ENV === "development" ? err.message : "Database error",
+      details:
+        process.env.NODE_ENV === "development"
+          ? {
+              code: err.code,
+              errno: err.errno,
+              sqlState: err.sqlState,
+            }
+          : undefined,
     });
   }
 });
 
 // 🔹 Mendapatkan semua pengguna dengan status pending
 router.get(
-      "/pendingUsers",
-      verifyToken,
-      updateTokenExpiry,
-      userController.getPendingUsers
+  "/pendingUsers",
+  verifyToken,
+  updateTokenExpiry,
+  userController.getPendingUsers
 );
 
 // 🔹 Mendapatkan semua pengguna
@@ -371,80 +379,121 @@ router.get("/searchUserLogs", dynamicRateLimiter, logController.searchUserLogs);
 
 router.get("/data-monitoring", monitoringData.dataMonitoringQc);
 
+// Tambahkan route untuk test query langsung
+router.get('/debug/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    console.log(`=== DEBUG ROUTE ===`);
+    console.log(`ID: ${id} (type: ${typeof id})`);
+    
+    // Test 1: Query dengan parameter
+    const [users1] = await db.execute("SELECT * FROM user WHERE id = ?", [id]);
+    console.log(`Query with param result:`, users1.length, users1);
+    
+    // Test 2: Query dengan string literal (HANYA UNTUK DEBUG - JANGAN PRODUCTION)
+    const [users2] = await db.execute(`SELECT * FROM user WHERE id = '${id}'`);
+    console.log(`Query with literal result:`, users2.length, users2);
+    
+    // Test 3: Lihat semua user
+    const [allUsers] = await db.execute("SELECT id, nama_lengkap FROM user LIMIT 5");
+    console.log(`All users:`, allUsers);
+    
+    // Test 4: Check data types di database
+    const [schema] = await db.execute("DESCRIBE user");
+    console.log(`Table schema:`, schema);
+    
+    res.json({
+      searchId: id,
+      idType: typeof id,
+      paramQuery: users1,
+      literalQuery: users2,
+      allUsers: allUsers,
+      schema: schema
+    });
+    
+  } catch (error) {
+    console.error('Debug route error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Test URL: http://10.126.15.141:8081/users/debug/3dec4970-3e3a-4e96-8658-e5f3ab679d1c
+
 // 🔹 Menghapus user
 router.delete(
-      "/deleteUser/:id",
-      dynamicRateLimiter,
-      verifyToken,
-      updateTokenExpiry,
-      authorizeRoles("admin"),
-      userController.deleteUserById
+  "/deleteUser/:id",
+  dynamicRateLimiter,
+  verifyToken,
+  updateTokenExpiry,
+  authorizeRoles("admin", "super admin"),
+  userController.deleteUserById
 );
 
 // 🔹 Menyetujui atau menolak pengguna
 router.patch(
-      "/updateUserStatus/:id",
-      dynamicRateLimiter,
-      verifyToken,
-      updateTokenExpiry,
-      authorizeRoles("admin", "super admin"),
-      async (req, res) => {
-            const { id } = req.params; // Mendapatkan ID user dari parameter URL
-            const { status, userRole, updated_at, updated_by } = req.body; // Mendapatkan data dari request body
+  "/updateUserStatus/:id",
+  dynamicRateLimiter,
+  verifyToken,
+  updateTokenExpiry,
+  authorizeRoles("admin", "super admin"),
+  async (req, res) => {
+    const { id } = req.params; // Mendapatkan ID user dari parameter URL
+    const { status, userRole, updated_at, updated_by } = req.body; // Mendapatkan data dari request body
 
-            // Cek apakah data body lengkap
-            if (!status || !userRole || !updated_at || !updated_by) {
-                  console.log("⛔ Missing fields in request body:", req.body);
-                  return res.status(400).json({ message: "Semua field wajib diisi." });
-            }
-            try {
-                  // Ambil data user
-                  const [userRows] = await db.query(
-                        "SELECT email, nama_lengkap FROM user WHERE id = ?",
-                        [id]
-                  );
-                  if (userRows.length === 0) {
-                        return res.status(404).json({ message: "User tidak ditemukan." });
-                  }
+    // Cek apakah data body lengkap
+    if (!status || !userRole || !updated_at || !updated_by) {
+      console.log("⛔ Missing fields in request body:", req.body);
+      return res.status(400).json({ message: "Semua field wajib diisi." });
+    }
+    try {
+      // Ambil data user
+      const [userRows] = await db.query(
+        "SELECT email, nama_lengkap FROM user WHERE id = ?",
+        [id]
+      );
+      if (userRows.length === 0) {
+        return res.status(404).json({ message: "User tidak ditemukan." });
+      }
 
-                  const userEmail = userRows[0].email;
-                  const userName = userRows[0].nama_lengkap;
+      const userEmail = userRows[0].email;
+      const userName = userRows[0].nama_lengkap;
 
-                  // Update status user
-                  const query = `
+      // Update status user
+      const query = `
               UPDATE user 
               SET status = ?, userrole = ?, updated_at = ?, updated_by = ? 
               WHERE id = ?;
             `;
-                  const values = [status, userRole, updated_at, updated_by, id];
-                  const [result] = await db.query(query, values);
+      const values = [status, userRole, updated_at, updated_by, id];
+      const [result] = await db.query(query, values);
 
-                  if (result.affectedRows === 0) {
-                        return res.status(404).json({ message: "User tidak ditemukan." });
-                  }
-
-                  // Kirim email sesuai status
-                  const subject = "Status Akun Anda Telah Diperbarui";
-                  const text =
-                        status === "Accept"
-                              ? `Halo ${userName},\n\nAkun Anda telah disetujui oleh admin.\nSilakan login untuk melanjutkan.\n\nTerima kasih.`
-                              : `Halo ${userName},\n\nAkun Anda telah ditolak oleh admin.\nSilakan konfirmasi ke Supervisor QC untuk lebih lanjut.\n\nTerima kasih.`;
-
-                  await sendStatusEmail(userEmail, subject, text);
-
-                  logActivity(updated_by, `Update status user ID ${id} ke ${status}`, req);
-
-                  return res.status(200).json({
-                        message: "Status user berhasil diupdate dan email dikirim.",
-                        data: { id, status, userRole },
-                  });
-            } catch (err) {
-                  console.error("❌ Error:", err);
-                  return res
-                        .status(500)
-                        .json({ message: "Server error", error: err.message });
-            }
+      if (result.affectedRows === 0) {
+        return res.status(404).json({ message: "User tidak ditemukan." });
       }
+
+      // Kirim email sesuai status
+      const subject = "Status Akun Anda Telah Diperbarui";
+      const text =
+        status === "Accept"
+          ? `Halo ${userName},\n\nAkun Anda telah disetujui oleh admin.\nSilakan login untuk melanjutkan.\n\nTerima kasih.`
+          : `Halo ${userName},\n\nAkun Anda telah ditolak oleh admin.\nSilakan konfirmasi ke Supervisor QC untuk lebih lanjut.\n\nTerima kasih.`;
+
+      await sendStatusEmail(userEmail, subject, text);
+
+      logActivity(updated_by, `Update status user ID ${id} ke ${status}`, req);
+
+      return res.status(200).json({
+        message: "Status user berhasil diupdate dan email dikirim.",
+        data: { id, status, userRole },
+      });
+    } catch (err) {
+      console.error("❌ Error:", err);
+      return res
+        .status(500)
+        .json({ message: "Server error", error: err.message });
+    }
+  }
 );
 
 // 🔹Mendapatkan detail pengguna berdasarkan ID

@@ -891,46 +891,104 @@ exports.deleteUserById = async (req, res) => {
     const { id } = req.params;
     const currentUser = req.user;
 
+    console.log(`=== DELETE USER START ===`);
+    console.log(`User ID: ${id}, Current User: ${currentUser.id} (${currentUser.userrole})`);
+
     if (!id) {
-      return res.status(400).json({ message: "User ID is required" });
+      console.log('ERROR: No ID provided');
+      return res.status(400).json({ 
+        success: false, 
+        error: "User ID is required" 
+      });
     }
 
     // Cari user
     const [users] = await db.execute("SELECT * FROM user WHERE id = ?", [id]);
     const userToDelete = users[0];
+    
     if (!userToDelete) {
-      return res.status(404).json({ message: "User not found" });
+      console.log('ERROR: User not found');
+      return res.status(404).json({ 
+        success: false, 
+        error: "User not found" 
+      });
     }
+
+    console.log(`Target user found: ${userToDelete.nama_lengkap} (${userToDelete.userrole})`);
 
     // Tidak boleh hapus diri sendiri
     if (userToDelete.id.toString() === currentUser.id.toString()) {
-      return res.status(403).json({ message: "Cannot delete yourself" });
+      console.log('ERROR: Cannot delete self');
+      return res.status(403).json({ 
+        success: false, 
+        error: "Cannot delete yourself" 
+      });
     }
 
     // Admin tidak boleh hapus super admin
-    if (
-      currentUser.userrole === "admin" &&
-      userToDelete.userrole === "super admin"
-    ) {
-      return res
-        .status(403)
-        .json({ message: "Admin cannot delete super admin" });
+    if (currentUser.userrole === "admin" && userToDelete.userrole === "super admin") {
+      console.log('ERROR: Admin cannot delete super admin');
+      return res.status(403).json({ 
+        success: false, 
+        error: "Admin cannot delete super admin" 
+      });
     }
 
+    // Super admin tidak boleh dihapus oleh siapapun
+    if (userToDelete.userrole === "super admin") {
+      console.log('ERROR: Super admin cannot be deleted');
+      return res.status(403).json({ 
+        success: false, 
+        error: "Super admin cannot be deleted" 
+      });
+    }
+
+    console.log('Executing DELETE query...');
     // Hapus user
     const [result] = await db.execute("DELETE FROM user WHERE id = ?", [id]);
+    
+    console.log('Delete result:', result);
+    
     if (result.affectedRows === 0) {
-      return res
-        .status(404)
-        .json({ message: "User not found or already deleted" });
+      console.log('ERROR: No rows affected');
+      return res.status(404).json({ 
+        success: false, 
+        error: "User not found or already deleted" 
+      });
     }
 
-    res.status(200).json({ message: "User deleted successfully" });
+    console.log(`SUCCESS: User deleted - ${userToDelete.nama_lengkap}`);
+    console.log('Sending success response...');
+
+    // PASTIKAN response dikirim dan tidak ada code setelah ini
+    const response = {
+      success: true, 
+      message: "User deleted successfully",
+      data: {
+        deletedUser: {
+          id: userToDelete.id,
+          nama_lengkap: userToDelete.nama_lengkap,
+          email: userToDelete.email
+        }
+      }
+    };
+
+    console.log('Response to send:', response);
+    console.log(`=== DELETE USER END ===`);
+
+    return res.status(200).json(response);
+
   } catch (error) {
-    console.error("Delete user error:", error);
-    res
-      .status(500)
-      .json({ message: "Internal server error", error: error.message });
+    console.error("=== DELETE USER ERROR ===");
+    console.error("Error:", error);
+    console.error("Stack:", error.stack);
+    
+    // PASTIKAN error response juga dikirim
+    return res.status(500).json({ 
+      success: false, 
+      error: "Internal server error",
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
   }
 };
 
