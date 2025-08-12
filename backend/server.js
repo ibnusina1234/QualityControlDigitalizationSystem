@@ -96,6 +96,12 @@ app.set("io", io);
 app.use("/public", express.static(path.join(__dirname, "public")));
 app.use("/uploads", express.static(path.join(__dirname, "public/uploads")));
 
+// DEBUGGING MIDDLEWARE - Tambahkan ini untuk melihat URL yang masuk
+app.use((req, res, next) => {
+  console.log(`🔍 Incoming request: ${req.method} ${req.originalUrl} | Path: ${req.path}`);
+  next();
+});
+
 // STEP 1: Apply login rate limiter to login endpoints FIRST
 // CRITICAL: TAMBAH blockCheckMiddleware ke login routes juga!
 app.use("/users/Login", blockCheckMiddleware);  // Cek block status dulu
@@ -103,30 +109,32 @@ app.use("/users/Login", loginRateLimiter);       // Kemudian rate limit
 app.use("/users/Register", blockCheckMiddleware); // Cek block status dulu
 app.use("/users/Register", loginRateLimiter);     // Kemudian rate limit
 
-// STEP 2: Apply token verification untuk protected routes
-app.use("/users/*", (req, res, next) => {
-  console.log("=== USERS MIDDLEWARE DEBUG ===");
-  console.log("Original URL:", req.originalUrl);
-  console.log("Base URL:", req.baseUrl);
-  console.log("Path:", req.path);
-  console.log("Full URL:", req.url);
-  console.log("Method:", req.method);
-  console.log("Route matched: /users/*");
-  console.log("Check /Login:", req.path === "/Login");
-  console.log("Check /Register:", req.path === "/Register");
-  console.log("Should skip?", req.path === "/Login" || req.path === "/Register");
-  console.log("===============================");
-  next();
-});
+// STEP 2: PERBAIKAN - Apply token verification untuk protected routes
 // Semua routes kecuali yang public perlu authentication
 app.use("/users/*", (req, res, next) => {
-  // Skip untuk login dan register
-  if (req.originalUrl === "/users/Login" || req.originalUrl === "/users/Register") {
-    console.log("✅ SKIPPING verifyToken for path:", req.path);
+  console.log(`🔍 MIDDLEWARE CHECK - originalUrl: "${req.originalUrl}" | path: "${req.path}"`);
+  
+  // PERBAIKAN: Gunakan berbagai cara untuk mendeteksi login/register
+  const isLoginRoute = req.originalUrl === "/users/Login" || 
+                      req.originalUrl.endsWith("/Login") ||
+                      req.path === "/Login" ||
+                      req.originalUrl.includes("/Login");
+                      
+  const isRegisterRoute = req.originalUrl === "/users/Register" || 
+                         req.originalUrl.endsWith("/Register") ||
+                         req.path === "/Register" ||
+                         req.originalUrl.includes("/Register");
+  
+  const isCheckEmailRoute = req.originalUrl.includes("/check-email");
+  const isUploadRoute = req.originalUrl.includes("/upload");
+  
+  // Skip untuk routes yang tidak memerlukan token
+  if (isLoginRoute || isRegisterRoute || isCheckEmailRoute || isUploadRoute) {
+    console.log("✅ SKIPPING verifyToken for path:", req.originalUrl);
     return next();
   }
   
-  console.log("🔒 CALLING verifyToken for path:", req.path);
+  console.log("🔒 CALLING verifyToken for path:", req.originalUrl);
   verifyToken(req, res, next);
 });
 
@@ -140,7 +148,17 @@ app.use("/admin/*", verifyToken);
 // STEP 3: CRITICAL - Apply block check middleware SETELAH verifyToken
 // Ini akan mencegah user yang diblok mengakses sistem
 app.use("/users/*", (req, res, next) => {
-  if (req.originalUrl === "/users/Login" || req.originalUrl === "/users/Register") {
+  const isLoginRoute = req.originalUrl === "/users/Login" || 
+                      req.originalUrl.endsWith("/Login") ||
+                      req.path === "/Login" ||
+                      req.originalUrl.includes("/Login");
+                      
+  const isRegisterRoute = req.originalUrl === "/users/Register" || 
+                         req.originalUrl.endsWith("/Register") ||
+                         req.path === "/Register" ||
+                         req.originalUrl.includes("/Register");
+  
+  if (isLoginRoute || isRegisterRoute) {
     return next();
   }
   blockCheckMiddleware(req, res, next);
@@ -155,7 +173,17 @@ app.use("/admin/*", blockCheckMiddleware);
 
 // STEP 4: Apply dynamic rate limiter untuk protected routes
 app.use("/users/*", (req, res, next) => {
-  if (req.originalUrl === "/users/Login" || req.originalUrl === "/users/Register") {
+  const isLoginRoute = req.originalUrl === "/users/Login" || 
+                      req.originalUrl.endsWith("/Login") ||
+                      req.path === "/Login" ||
+                      req.originalUrl.includes("/Login");
+                      
+  const isRegisterRoute = req.originalUrl === "/users/Register" || 
+                         req.originalUrl.endsWith("/Register") ||
+                         req.path === "/Register" ||
+                         req.originalUrl.includes("/Register");
+  
+  if (isLoginRoute || isRegisterRoute) {
     return next();
   }
   dynamicRateLimiter(req, res, next);
