@@ -7,6 +7,7 @@ const registerSchema = Joi.object({
   departement: Joi.string().required(),
   jabatan: Joi.string().required(),
   password: Joi.string().min(6).required(),
+  role: Joi.string().required(), // validasi sederhana string required
   // img TIDAK divalidasi karena ada di req.file, bukan req.body
 });
 
